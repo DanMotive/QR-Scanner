@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">QR-сканер</string>
+
+    <!-- Нижняя навигация -->
+    <string name="tab_scan">Сканер</string>
+    <string name="tab_generate">Генератор</string>
+    <string name="tab_other">Другое</string>
+
+    <!-- Экран сканера (заглушка) -->
+    <string name="scan_placeholder_title">Сканирование QR-кода</string>
+    <string name="scan_placeholder_description">Здесь появится изображение с камеры и распознавание QR-кодов.</string>
+
+    <!-- Экран генератора (заглушка) -->
+    <string name="generator_placeholder_title">Создание QR-кода</string>
+    <string name="generator_placeholder_description">Здесь появится генератор QR-кодов.</string>
+</resources>

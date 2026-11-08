@@ -1,3 +1,16 @@
 <resources>
     <string name="app_name">QR Scanner</string>
+
+    <!-- Bottom navigation tabs -->
+    <string name="tab_scan">Scan</string>
+    <string name="tab_generate">Generate</string>
+    <string name="tab_other">Other</string>
+
+    <!-- Scan screen (placeholder) -->
+    <string name="scan_placeholder_title">Scan a QR code</string>
+    <string name="scan_placeholder_description">Camera preview and QR code detection will appear here.</string>
+
+    <!-- Generator screen (placeholder) -->
+    <string name="generator_placeholder_title">Create a QR code</string>
+    <string name="generator_placeholder_description">QR code generation will appear here.</string>
 </resources>
