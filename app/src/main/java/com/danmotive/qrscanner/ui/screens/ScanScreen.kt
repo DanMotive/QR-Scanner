@@ -74,7 +74,7 @@ fun ScanScreen(modifier: Modifier = Modifier) {
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
+                    .height(350.dp)
             )
 
             @OptIn(ExperimentalGetImage::class)
