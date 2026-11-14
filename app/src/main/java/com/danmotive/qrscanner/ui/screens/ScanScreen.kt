@@ -1,5 +1,6 @@
 package com.danmotive.qrscanner.ui.screens
 
+import com.danmotive.qrscanner.R
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -28,6 +29,8 @@ import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
+import androidx.compose.ui.res.stringResource
+
 
 @Composable
 fun ScanScreen(modifier: Modifier = Modifier) {
@@ -44,6 +47,7 @@ fun ScanScreen(modifier: Modifier = Modifier) {
     }
 
     var result by remember { mutableStateOf<String?>(null) }
+    var error by remember { mutableStateOf<String?>(null) }
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
 
     val scanned = remember { AtomicBoolean(false) }
@@ -60,7 +64,7 @@ fun ScanScreen(modifier: Modifier = Modifier) {
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Сканирование QR-кода")
+        Text(stringResource(R.string.scan_title))
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -110,8 +114,8 @@ fun ScanScreen(modifier: Modifier = Modifier) {
 
                         analysis.setAnalyzer(
                             executor,
-                            @OptIn(ExperimentalGetImage::class)
                             object : ImageAnalysis.Analyzer {
+                                @OptIn(ExperimentalGetImage::class)
                                 override fun analyze(imageProxy: ImageProxy) {
                                     val mediaImage = imageProxy.image
 
@@ -153,7 +157,7 @@ fun ScanScreen(modifier: Modifier = Modifier) {
                                 analysis
                             )
                         } catch (e: Exception) {
-                            result = "Ошибка камеры: ${e.message}"
+                            error = e.message
                         }
 
                     }, ContextCompat.getMainExecutor(context))
@@ -166,21 +170,25 @@ fun ScanScreen(modifier: Modifier = Modifier) {
                 }
             }
         } else {
-            Text("Для сканирования нужен доступ к камере")
+            Text(stringResource(R.string.camera_permission_needed))
 
             Button(
                 onClick = {
                     launcher.launch(Manifest.permission.CAMERA)
                 }
             ) {
-                Text("Разрешить камеру")
+                Text(stringResource(R.string.allow_camera))
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (result != null) {
-            Text("Результат: $result")
+        error?.let {
+            Text(stringResource(R.string.camera_error, it))
+        }
+
+        result?.let { value ->
+            Text(stringResource(R.string.result_format, value))
 
             Button(
                 onClick = {
@@ -188,10 +196,12 @@ fun ScanScreen(modifier: Modifier = Modifier) {
                     scanned.set(false)
                 }
             ) {
-                Text("Сканировать снова")
+                Text(stringResource(R.string.scan_again))
             }
-        } else if (hasPermission) {
-            Text("Наведите камеру на QR-код")
+        }
+
+        if (result == null && hasPermission) {
+            Text(stringResource(R.string.point_camera_hint))
         }
     }
 }
