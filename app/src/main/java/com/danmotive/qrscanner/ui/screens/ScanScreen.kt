@@ -74,10 +74,9 @@ fun ScanScreen(modifier: Modifier = Modifier) {
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(350.dp)
+                    .weight(1f)
             )
 
-            @OptIn(ExperimentalGetImage::class)
             DisposableEffect(previewView, lifecycleOwner) {
                 val view = previewView
                 val executor = Executors.newSingleThreadExecutor()
