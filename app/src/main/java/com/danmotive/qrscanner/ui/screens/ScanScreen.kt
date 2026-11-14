@@ -1,7 +1,10 @@
 package com.danmotive.qrscanner.ui.screens
 
 import android.Manifest
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
@@ -11,7 +14,9 @@ import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,25 +32,32 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.danmotive.qrscanner.R
+import com.danmotive.qrscanner.ui.core.isWebUrl
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
+import androidx.core.net.toUri
 
 
 @Composable
 fun ScanScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
+    val clipboard = LocalClipboardManager.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val openErrorMessage = stringResource(R.string.error_link)
+    val copiedMessage = stringResource(R.string.copied)
 
     var hasPermission by remember {
         mutableStateOf(
@@ -125,7 +137,7 @@ fun ScanScreen(modifier: Modifier = Modifier) {
                         analysis.setAnalyzer(
                             executor,
                             object : ImageAnalysis.Analyzer {
-                                @OptIn(ExperimentalGetImage::class)
+                                @androidx.annotation.OptIn(ExperimentalGetImage::class)
                                 override fun analyze(imageProxy: ImageProxy) {
                                     val mediaImage = imageProxy.image
 
@@ -199,6 +211,42 @@ fun ScanScreen(modifier: Modifier = Modifier) {
 
         result?.let { value ->
             Text(stringResource(R.string.result_format, value))
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            val isLink = isWebUrl(value) // проверяет есть ли :// в расшифровке
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (isLink) {
+                    Button(onClick = {
+                        try {
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, value.toUri())
+                            )
+                        } catch (_: ActivityNotFoundException) {
+                            Toast.makeText(
+                                context,
+                                openErrorMessage,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }) {
+                        Text(stringResource(R.string.open_link))
+                    }
+                }
+                Button(onClick = {
+                    clipboard.setText(AnnotatedString(value))
+                    Toast.makeText(
+                        context,
+                        copiedMessage,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }) {
+                    Text(stringResource(R.string.copy))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             Button(
                 onClick = {

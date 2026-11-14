@@ -14,4 +14,8 @@
     <string name="point_camera_hint">Наведите камеру на QR-код</string>
     <string name="result_format">Результат: %1$s</string>
     <string name="camera_error">Ошибка камеры: %1$s</string>
+    <string name="copy">Копировать</string>
+    <string name="open_link">Открыть ссылку</string>
+    <string name="error_link">Нет приложения, открывающего эту ссылку</string>
+    <string name="copied">Скопировано</string>
 </resources>
