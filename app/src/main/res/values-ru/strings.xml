@@ -18,4 +18,5 @@
     <string name="open_link">Открыть ссылку</string>
     <string name="error_link">Нет приложения, открывающего эту ссылку</string>
     <string name="copied">Скопировано</string>
+    <string name="generator_hint">Текст или ссылка</string>
 </resources>

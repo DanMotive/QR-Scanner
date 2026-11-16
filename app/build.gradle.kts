@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId = "com.danmotive.qrscanner"
-        minSdk = 23
+        minSdk = 29
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
@@ -51,5 +51,6 @@ dependencies {
     implementation(libs.camera.lifecycle)
     implementation(libs.camera.view)
     implementation(libs.mlkit.barcode.scanning)
+    implementation(libs.zxing.core)
     implementation(libs.androidx.lifecycle.runtime.compose)
 }
