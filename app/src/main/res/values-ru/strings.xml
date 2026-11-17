@@ -19,4 +19,9 @@
     <string name="error_link">Нет приложения, открывающего эту ссылку</string>
     <string name="copied">Скопировано</string>
     <string name="generator_hint">Текст или ссылка</string>
+    <string name="save">Сохранить в галерею</string>
+    <string name="save_error">Не удалось сохранить</string>
+    <string name="save_success">Успешно сохранено</string>
+    <string name="share">Поделиться</string>
+    <string name="share_via">Поделиться в...</string>
 </resources>

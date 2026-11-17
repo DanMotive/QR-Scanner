@@ -19,4 +19,9 @@
     <string name="error_link">No app can open this link</string>
     <string name="copied">Copied</string>
     <string name="generator_hint">Text or link</string>
+    <string name="save">Save to gallery</string>
+    <string name="save_error">Save error to gallery</string>
+    <string name="save_success">Saved successfully</string>
+    <string name="share">Share</string>
+    <string name="share_via">Share via...</string>
 </resources>
