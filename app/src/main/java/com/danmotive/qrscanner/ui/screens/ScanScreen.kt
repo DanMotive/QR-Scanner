@@ -57,7 +57,7 @@ import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
-
+import androidx.activity.result.PickVisualMediaRequest
 
 @Composable
 fun ScanScreen(modifier: Modifier = Modifier) {
@@ -86,6 +86,70 @@ fun ScanScreen(modifier: Modifier = Modifier) {
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         hasPermission = granted
+    }
+    val photoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+
+        if (uri != null) {
+            result = null
+            error = null
+            scanned.set(true)
+
+            try {
+                val image = InputImage.fromFilePath(context, uri)
+
+                val photoScanner = BarcodeScanning.getClient(
+                    BarcodeScannerOptions.Builder()
+                        .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+                        .build()
+                )
+
+                photoScanner.process(image)
+                    .addOnSuccessListener { barcodes ->
+                        val barcode = barcodes.firstOrNull()
+
+                        android.util.Log.d("QR_PHOTO", "Количество QR: ${barcodes.size}")
+                        android.util.Log.d("QR_PHOTO", "RawValue: ${barcode?.rawValue}")
+                        android.util.Log.d("QR_PHOTO", "DisplayValue: ${barcode?.displayValue}")
+                        android.util.Log.d(
+                            "QR_PHOTO",
+                            "RawBytes: ${barcode?.rawBytes?.joinToString(" ") { byte -> "%02X".format(byte) }}"
+                        )
+
+                        val value = barcode?.rawValue ?: barcode?.displayValue
+                        if (value != null) {
+                            result = value
+                        } else {
+                            Toast.makeText(
+                                context,
+                                "QR-код не найден",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            scanned.set(false)
+                        }
+                    }
+                    .addOnFailureListener {
+                        Toast.makeText(
+                            context,
+                            "Ошибка распознавания",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        scanned.set(false)
+                    }
+                    .addOnCompleteListener {
+                        photoScanner.close()
+                    }
+
+            } catch (e: Exception) {
+                scanned.set(false)
+                Toast.makeText(
+                    context,
+                    "Ошибка открытия изображения",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -293,6 +357,20 @@ fun ScanScreen(modifier: Modifier = Modifier) {
                 color = Color.White,
                 modifier = Modifier.align(Alignment.Center)
             )
+        }
+
+        // Кнопка импорта фотографии
+        if (result == null) {
+            FilledTonalButton(
+                onClick = {
+                    photoLauncher.launch("image/*")
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 32.dp)
+            ) {
+                Text("Импортировать фото")
+            }
         }
     }
 }

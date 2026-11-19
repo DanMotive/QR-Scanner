@@ -14,12 +14,23 @@ import com.google.zxing.common.BitMatrix
 import com.google.zxing.qrcode.QRCodeWriter
 import java.io.File
 import java.io.FileOutputStream
+import com.google.zxing.EncodeHintType
 
 // Текст в матрицу
 fun encodeQr(text: String, size: Int): BitMatrix? {
     if (text.isEmpty()) return null
     return try {
-        QRCodeWriter().encode(text, BarcodeFormat.QR_CODE, size, size)
+        val hints = mapOf(
+            EncodeHintType.CHARACTER_SET to "UTF-8"
+        )
+
+        QRCodeWriter().encode(
+            text,
+            BarcodeFormat.QR_CODE,
+            size,
+            size,
+            hints
+        )
     } catch (_: Exception) {
         null
     }
