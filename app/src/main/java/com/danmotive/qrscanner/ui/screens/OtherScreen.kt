@@ -13,7 +13,7 @@ fun OtherScreen(modifier: Modifier = Modifier) {
     Box(modifier = modifier.fillMaxSize()) {
         Row (modifier = Modifier.align(Alignment.Center))
         {
-            Text("в разработке всё ещё")
+            Text("в разработке всё ещё, это DEMO.")
         }
     }
 }

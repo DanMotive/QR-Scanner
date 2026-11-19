@@ -9,6 +9,15 @@ android {
         version = release(37)
     }
 
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a")
+            isUniversalApk = false
+        }
+    }
+
     defaultConfig {
         applicationId = "com.danmotive.qrscanner"
         minSdk = 29
