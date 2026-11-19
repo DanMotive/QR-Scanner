@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
@@ -92,7 +93,7 @@ fun ScanScreen(modifier: Modifier = Modifier) {
         hasPermission = granted
     }
     val photoLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+        contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
 
         if (uri != null) {
@@ -216,11 +217,9 @@ fun ScanScreen(modifier: Modifier = Modifier) {
                                             ContextCompat.getMainExecutor(context)
                                         ) { barcodes ->
                                             val value = barcodes.firstOrNull()?.rawValue
-
-                                            if (value != null &&
-                                                scanned.compareAndSet(false, true)
-                                            ) {
+                                            if (value != null && scanned.compareAndSet(false, true)) {
                                                 result = value
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                             }
                                         }
                                         .addOnCompleteListener {
@@ -352,7 +351,9 @@ fun ScanScreen(modifier: Modifier = Modifier) {
         if (result == null) {
             FilledTonalButton(
                 onClick = {
-                    photoLauncher.launch("image/*")
+                    photoLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
                 },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
