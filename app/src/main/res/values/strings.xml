@@ -11,6 +11,7 @@
     <string name="camera_permission_needed">Camera access is required for scanning</string>
     <string name="allow_camera">Allow camera</string>
     <string name="scan_again">Scan again</string>
+    <string name="scan_from_photo">Scan from photos</string>
     <string name="point_camera_hint">Point the camera at a QR code</string>
     <string name="result_format">Result: %1$s</string>
     <string name="camera_error">Camera error: %1$s</string>
@@ -24,4 +25,7 @@
     <string name="save_success">Saved successfully</string>
     <string name="share">Share</string>
     <string name="share_via">Share via...</string>
+    <string name="qr_not_found">No QR code found in the photo</string>
+    <string name="scan_error">Failed to recognize the code</string>
+    <string name="image_open_error">Failed to open the image</string>
 </resources>

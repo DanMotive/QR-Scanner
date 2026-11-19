@@ -39,11 +39,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
@@ -57,7 +58,6 @@ import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
-import androidx.activity.result.PickVisualMediaRequest
 
 @Composable
 fun ScanScreen(modifier: Modifier = Modifier) {
@@ -66,6 +66,10 @@ fun ScanScreen(modifier: Modifier = Modifier) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val openErrorMessage = stringResource(R.string.error_link)
     val copiedMessage = stringResource(R.string.copied)
+    val qrNotFoundMessage = stringResource(R.string.qr_not_found)
+    val scanErrorMessage = stringResource(R.string.scan_error)
+    val imageOpenErrorMessage = stringResource(R.string.image_open_error)
+    val haptic = LocalHapticFeedback.current
 
     var hasPermission by remember {
         mutableStateOf(
@@ -109,21 +113,14 @@ fun ScanScreen(modifier: Modifier = Modifier) {
                     .addOnSuccessListener { barcodes ->
                         val barcode = barcodes.firstOrNull()
 
-                        android.util.Log.d("QR_PHOTO", "Количество QR: ${barcodes.size}")
-                        android.util.Log.d("QR_PHOTO", "RawValue: ${barcode?.rawValue}")
-                        android.util.Log.d("QR_PHOTO", "DisplayValue: ${barcode?.displayValue}")
-                        android.util.Log.d(
-                            "QR_PHOTO",
-                            "RawBytes: ${barcode?.rawBytes?.joinToString(" ") { byte -> "%02X".format(byte) }}"
-                        )
-
                         val value = barcode?.rawValue ?: barcode?.displayValue
                         if (value != null) {
                             result = value
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         } else {
                             Toast.makeText(
                                 context,
-                                "QR-код не найден",
+                                qrNotFoundMessage,
                                 Toast.LENGTH_SHORT
                             ).show()
                             scanned.set(false)
@@ -132,7 +129,7 @@ fun ScanScreen(modifier: Modifier = Modifier) {
                     .addOnFailureListener {
                         Toast.makeText(
                             context,
-                            "Ошибка распознавания",
+                            scanErrorMessage,
                             Toast.LENGTH_SHORT
                         ).show()
                         scanned.set(false)
@@ -141,11 +138,11 @@ fun ScanScreen(modifier: Modifier = Modifier) {
                         photoScanner.close()
                     }
 
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 scanned.set(false)
                 Toast.makeText(
                     context,
-                    "Ошибка открытия изображения",
+                    imageOpenErrorMessage,
                     Toast.LENGTH_SHORT
                 ).show()
             }
@@ -153,14 +150,6 @@ fun ScanScreen(modifier: Modifier = Modifier) {
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        Text(
-            stringResource(R.string.scan_title),
-            color = Color.White,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 48.dp)
-        )
 
         if (hasPermission) {
             AndroidView(
@@ -369,7 +358,7 @@ fun ScanScreen(modifier: Modifier = Modifier) {
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 32.dp)
             ) {
-                Text("Импортировать фото")
+                Text(stringResource(R.string.scan_from_photo))
             }
         }
     }

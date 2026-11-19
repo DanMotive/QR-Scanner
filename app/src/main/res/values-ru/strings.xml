@@ -6,11 +6,12 @@
     <string name="scan_placeholder_title">Сканирование QR-кода</string>
     <string name="scan_placeholder_description">Здесь появится изображение с камеры и распознавание QR-кодов.</string>
     <string name="generator_placeholder_title">Создание QR-кода</string>
-    <string name="generator_placeholder_description">Здесь появится генератор QR-кодов.</string>
+    <string name="generator_placeholder_description">Здесь появится сгенерированный QR-код.</string>
     <string name="scan_title">Сканирование QR-кода</string>
     <string name="camera_permission_needed">Для сканирования нужен доступ к камере</string>
     <string name="allow_camera">Разрешить камеру</string>
     <string name="scan_again">Сканировать снова</string>
+    <string name="scan_from_photo">Сканировать с фото</string>
     <string name="point_camera_hint">Наведите камеру на QR-код</string>
     <string name="result_format">Результат: %1$s</string>
     <string name="camera_error">Ошибка камеры: %1$s</string>
@@ -24,4 +25,7 @@
     <string name="save_success">Успешно сохранено</string>
     <string name="share">Поделиться</string>
     <string name="share_via">Поделиться в...</string>
+    <string name="qr_not_found">На фото не найден QR-код</string>
+    <string name="scan_error">Не удалось распознать код</string>
+    <string name="image_open_error">Не удалось открыть изображение</string>
 </resources>
