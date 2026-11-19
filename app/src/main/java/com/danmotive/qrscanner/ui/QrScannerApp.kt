@@ -54,7 +54,7 @@ fun QrScannerApp(modifier: Modifier = Modifier) {
         modifier = modifier.fillMaxSize(),
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(text = stringResource(R.string.app_name)) }
+                title = { Text(text = stringResource(selectedTab.labelRes)) }
             )
         },
         bottomBar = {
