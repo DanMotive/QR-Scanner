@@ -18,19 +18,13 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -52,7 +46,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.danmotive.qrscanner.R
-import com.danmotive.qrscanner.ui.core.isWebUrl
+import com.danmotive.qrscanner.ui.components.ResultCard
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
@@ -106,7 +100,7 @@ fun ScanScreen(modifier: Modifier = Modifier) {
 
                 val photoScanner = BarcodeScanning.getClient(
                     BarcodeScannerOptions.Builder()
-                        .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+                        .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)
                         .build()
                 )
 
@@ -170,7 +164,7 @@ fun ScanScreen(modifier: Modifier = Modifier) {
 
                 val scanner = BarcodeScanning.getClient(
                     BarcodeScannerOptions.Builder()
-                        .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+                        .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)
                         .build()
                 )
 
@@ -277,66 +271,38 @@ fun ScanScreen(modifier: Modifier = Modifier) {
         }
 
         result?.let { value ->
-            Surface(
+            ResultCard(
+                value = value,
+                onOpenLink = {
+                    try {
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, value.toUri())
+                        )
+                    } catch (_: ActivityNotFoundException) {
+                        Toast.makeText(
+                            context,
+                            openErrorMessage,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                },
+                onCopy = {
+                    clipboard.setText(AnnotatedString(value))
+                    Toast.makeText(
+                        context,
+                        copiedMessage,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                },
+                onScanAgain = {
+                    result = null
+                    scanned.set(false)
+                },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .padding(16.dp),
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(stringResource(R.string.result_format, value))
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    val isLink = isWebUrl(value) // проверяет есть ли :// в расшифровке
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (isLink) {
-                            // Открыть ссылку
-                            Button(onClick = {
-                                try {
-                                    context.startActivity(
-                                        Intent(Intent.ACTION_VIEW, value.toUri())
-                                    )
-                                } catch (_: ActivityNotFoundException) {
-                                    Toast.makeText(
-                                        context,
-                                        openErrorMessage,
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                            }) {
-                                Text(stringResource(R.string.open_link))
-                            }
-                        }
-                        // Скопировать
-                        FilledTonalButton(onClick = {
-                            clipboard.setText(AnnotatedString(value))
-                            Toast.makeText(
-                                context,
-                                copiedMessage,
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }) {
-                            Text(stringResource(R.string.copy))
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Снова скан
-                    TextButton(
-                        onClick = {
-                            result = null
-                            scanned.set(false)
-                        }
-                    ) {
-                        Text(stringResource(R.string.scan_again))
-                    }
-                }
-            }
+                    .padding(16.dp)
+            )
         }
 
         if (result == null && hasPermission) {
