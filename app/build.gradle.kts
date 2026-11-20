@@ -6,7 +6,9 @@ plugins {
 android {
     namespace = "com.danmotive.qrscanner"
     compileSdk {
-        version = release(37)
+        version = release(37) {
+            minorApiLevel = 2
+        }
     }
 
     splits {
@@ -21,7 +23,7 @@ android {
     defaultConfig {
         applicationId = "com.danmotive.qrscanner"
         minSdk = 29
-        targetSdk = 37
+        targetSdk = 37.2.toInt()
         versionCode = 1
         versionName = "1.0"
 

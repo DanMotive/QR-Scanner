@@ -30,12 +30,6 @@ import com.danmotive.qrscanner.ui.screens.OtherScreen
 import com.danmotive.qrscanner.ui.screens.ScanScreen
 import com.danmotive.qrscanner.ui.theme.QRScannerTheme
 
-/**
- * Вкладки нижней навигации.
- *
- * Иконки — плейсхолдеры, позже их можно заменить на собственные
- * векторные иконки (например, QrCodeScanner из material-icons-extended).
- */
 enum class AppTab(
     @param:StringRes val labelRes: Int,
     val icon: ImageVector
