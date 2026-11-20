@@ -13,7 +13,7 @@
     <string name="scan_again">Scan again</string>
     <string name="scan_from_photo">Scan from photos</string>
     <string name="point_camera_hint">Point the camera at a QR code</string>
-    <string name="result_format">Result: %1$s</string>
+    <string name="result_label">Result</string>
     <string name="camera_error">Camera error: %1$s</string>
     <string name="copy">Copy</string>
     <string name="open_link">Open link</string>

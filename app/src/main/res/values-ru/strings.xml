@@ -13,7 +13,7 @@
     <string name="scan_again">Сканировать снова</string>
     <string name="scan_from_photo">Сканировать с фото</string>
     <string name="point_camera_hint">Наведите камеру на QR-код</string>
-    <string name="result_format">Результат: %1$s</string>
+    <string name="result_label">Результат</string>
     <string name="camera_error">Ошибка камеры: %1$s</string>
     <string name="copy">Копировать</string>
     <string name="open_link">Открыть ссылку</string>
