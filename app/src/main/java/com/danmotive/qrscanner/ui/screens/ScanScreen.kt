@@ -47,12 +47,14 @@ import androidx.core.net.toUri
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.danmotive.qrscanner.R
 import com.danmotive.qrscanner.ui.components.ResultCard
+import com.google.mlkit.vision.barcode.BarcodeScanner
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 
 @Composable
 fun ScanScreen(modifier: Modifier = Modifier) {
@@ -162,11 +164,11 @@ fun ScanScreen(modifier: Modifier = Modifier) {
                 val view = previewView
                 val executor = Executors.newSingleThreadExecutor()
 
-                val scanner = BarcodeScanning.getClient(
-                    BarcodeScannerOptions.Builder()
-                        .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)
-                        .build()
-                )
+                val options = BarcodeScannerOptions.Builder()
+                    .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)
+                    .build()
+
+                val scanner = AtomicReference<BarcodeScanner?>(null)
 
                 var cameraProvider: ProcessCameraProvider? = null
 
@@ -206,7 +208,11 @@ fun ScanScreen(modifier: Modifier = Modifier) {
                                         imageProxy.imageInfo.rotationDegrees
                                     )
 
-                                    scanner.process(inputImage)
+                                    val client = scanner.get()
+                                        ?: BarcodeScanning.getClient(options)
+                                            .also { scanner.set(it) }
+
+                                    client.process(inputImage)
                                         .addOnSuccessListener(
                                             ContextCompat.getMainExecutor(context)
                                         ) { barcodes ->
@@ -240,7 +246,7 @@ fun ScanScreen(modifier: Modifier = Modifier) {
 
                 onDispose {
                     cameraProvider?.unbindAll()
-                    scanner.close()
+                    scanner.get()?.close()
                     executor.shutdown()
                 }
             }
