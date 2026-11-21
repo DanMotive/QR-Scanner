@@ -28,4 +28,8 @@
     <string name="qr_not_found">No QR code found in the photo</string>
     <string name="scan_error">Failed to recognize the code</string>
     <string name="image_open_error">Failed to open the image</string>
+    <string name="about_version">Version %1$s</string>
+    <string name="about_description">A simple QR scanner and generator. Nothing extra.</string>
+    <string name="about_stack_label">Built with</string>
+    <string name="about_stack">Kotlin, Jetpack Compose, CameraX, ML Kit, ZXing</string>
 </resources>
