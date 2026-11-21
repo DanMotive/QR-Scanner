@@ -15,8 +15,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -83,30 +83,39 @@ fun GeneratorScreen(modifier: Modifier = Modifier) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 // Сохранить в галерею
-                Button(onClick = {
-                    val uri = saveQrToGallery(context, bitmap)
-                    Toast.makeText(
-                        context, if (uri != null) savedGallery else errorGallery, Toast.LENGTH_SHORT
-                    ).show()
-                }) {
+                Button(
+                    onClick = {
+                        val uri = saveQrToGallery(context, bitmap)
+                        Toast.makeText(
+                            context, if (uri != null) savedGallery else errorGallery, Toast.LENGTH_SHORT
+                        ).show()
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
                     Text(stringResource(R.string.save))
                 }
                 // Поделиться
-                OutlinedButton(onClick = {
-                    val uri = saveQrToCache(context, bitmap)
-                    if (uri != null){
-                        val intent = Intent(Intent.ACTION_SEND).apply {
-                            type = "image/png"
-                            putExtra(Intent.EXTRA_STREAM, uri)
-                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                FilledTonalButton(
+                    onClick = {
+                        val uri = saveQrToCache(context, bitmap)
+                        if (uri != null) {
+                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                type = "image/png"
+                                putExtra(Intent.EXTRA_STREAM, uri)
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(Intent.createChooser(intent, shareTitle))
+                        } else {
+                            Toast.makeText(context, errorGallery, Toast.LENGTH_SHORT).show()
                         }
-                        context.startActivity(Intent.createChooser(intent, shareTitle))
-                    } else {
-                        Toast.makeText(context, errorGallery, Toast.LENGTH_SHORT).show()
-                    }
-                }) {
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
                     Text(stringResource(R.string.share))
                 }
             }
