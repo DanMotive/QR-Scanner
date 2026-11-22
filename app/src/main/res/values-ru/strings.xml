@@ -30,6 +30,11 @@
     <string name="image_open_error">Не удалось открыть изображение</string>
     <string name="about_version">Версия %1$s</string>
     <string name="about_description">Простой сканер и генератор QR-кодов. Ничего лишнего.</string>
-    <string name="about_stack_label">Сделано на</string>
-    <string name="about_stack">Kotlin, Jetpack Compose, CameraX, ML Kit, ZXing</string>
+    <string name="settings_theme">Тема</string>
+    <string name="settings_theme_system">Системная</string>
+    <string name="settings_language">Язык</string>
+    <string name="settings_github">GitHub</string>
+    <string name="settings_telegram">Telegram-канал</string>
+    <string name="settings_updates">Проверить обновления</string>
+    <string name="settings_coming_soon">Скоро</string>
 </resources>
