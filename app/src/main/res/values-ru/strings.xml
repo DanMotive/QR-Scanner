@@ -28,6 +28,7 @@
     <string name="qr_not_found">На фото не найден QR-код</string>
     <string name="scan_error">Не удалось распознать код</string>
     <string name="image_open_error">Не удалось открыть изображение</string>
+    <string name="flash">Вспышка</string>
     <string name="about_version">Версия %1$s</string>
     <string name="about_description">Простой сканер и генератор QR-кодов. Ничего лишнего.</string>
     <string name="settings_theme">Тема</string>

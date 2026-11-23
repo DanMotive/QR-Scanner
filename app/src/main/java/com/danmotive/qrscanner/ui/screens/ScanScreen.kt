@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
@@ -15,14 +16,18 @@ import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,6 +43,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
@@ -80,9 +86,10 @@ fun ScanScreen(modifier: Modifier = Modifier) {
     var result by remember { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
-
+    var camera by remember { mutableStateOf<Camera?>(null) }
+    val hasFlash = remember(camera) { camera?.cameraInfo?.hasFlashUnit() == true }
     val scanned = remember { AtomicBoolean(false) }
-
+    var torchOn by remember { mutableStateOf(false) }
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -217,7 +224,11 @@ fun ScanScreen(modifier: Modifier = Modifier) {
                                             ContextCompat.getMainExecutor(context)
                                         ) { barcodes ->
                                             val value = barcodes.firstOrNull()?.rawValue
-                                            if (value != null && scanned.compareAndSet(false, true)) {
+                                            if (value != null && scanned.compareAndSet(
+                                                    false,
+                                                    true
+                                                )
+                                            ) {
                                                 result = value
                                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                             }
@@ -231,7 +242,7 @@ fun ScanScreen(modifier: Modifier = Modifier) {
 
                         try {
                             provider.unbindAll()
-                            provider.bindToLifecycle(
+                            camera = provider.bindToLifecycle(
                                 lifecycleOwner,
                                 CameraSelector.DEFAULT_BACK_CAMERA,
                                 preview,
@@ -245,6 +256,8 @@ fun ScanScreen(modifier: Modifier = Modifier) {
                 }
 
                 onDispose {
+                    camera = null
+                    torchOn = false
                     cameraProvider?.unbindAll()
                     scanner.get()?.close()
                     executor.shutdown()
@@ -332,6 +345,28 @@ fun ScanScreen(modifier: Modifier = Modifier) {
                     .padding(bottom = 32.dp)
             ) {
                 Text(stringResource(R.string.scan_from_photo))
+            }
+        }
+        // Кнопка вспышки
+        if (hasFlash) {
+            IconButton(
+                onClick = {
+                    val c = camera
+                    if (c != null) {
+                        torchOn = !torchOn
+                        c.cameraControl.enableTorch(torchOn)
+                    }
+                },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+                    .background(Color.Black.copy(alpha = 0.45f), CircleShape)
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_flash),
+                    contentDescription = stringResource(R.string.flash),
+                    tint = if (torchOn) Color(0xFFFFC107) else Color.White
+                )
             }
         }
     }
