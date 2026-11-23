@@ -62,4 +62,8 @@ dependencies {
     implementation(libs.mlkit.barcode.scanning)
     implementation(libs.zxing.core)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation("androidx.datastore:datastore-preferences:1.2.1")
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.11.1")
+    implementation("androidx.appcompat:appcompat:1.7.1")
 }

@@ -17,17 +17,19 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.QRScanner"
         tools:ignore="UnusedAttribute">
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:theme="@style/Theme.QRScanner"
             android:windowSoftInputMode="adjustResize">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -38,5 +40,4 @@
                 android:resource="@xml/file_paths" />
         </provider>
     </application>
-
 </manifest>

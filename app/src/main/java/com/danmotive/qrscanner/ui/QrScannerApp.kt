@@ -1,3 +1,4 @@
+
 package com.danmotive.qrscanner.ui
 
 import androidx.annotation.StringRes
@@ -25,6 +26,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import com.danmotive.qrscanner.R
+import com.danmotive.qrscanner.data.AppLanguage
+import com.danmotive.qrscanner.data.ThemeMode
 import com.danmotive.qrscanner.ui.screens.GeneratorScreen
 import com.danmotive.qrscanner.ui.screens.OtherScreen
 import com.danmotive.qrscanner.ui.screens.ScanScreen
@@ -41,14 +44,24 @@ enum class AppTab(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QrScannerApp(modifier: Modifier = Modifier) {
-    var selectedTab by rememberSaveable { mutableStateOf(AppTab.Scan) }
+fun QrScannerApp(
+    themeMode: ThemeMode,
+    onThemeModeChange: (ThemeMode) -> Unit,
+    language: AppLanguage,
+    onLanguageChange: (AppLanguage) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var selectedTab by rememberSaveable {
+        mutableStateOf(AppTab.Scan)
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text(text = stringResource(selectedTab.labelRes)) }
+                title = {
+                    Text(text = stringResource(selectedTab.labelRes))
+                }
             )
         },
         bottomBar = {
@@ -63,7 +76,9 @@ fun QrScannerApp(modifier: Modifier = Modifier) {
                                 contentDescription = null
                             )
                         },
-                        label = { Text(text = stringResource(tab.labelRes)) }
+                        label = {
+                            Text(text = stringResource(tab.labelRes))
+                        }
                     )
                 }
             }
@@ -77,7 +92,12 @@ fun QrScannerApp(modifier: Modifier = Modifier) {
             when (selectedTab) {
                 AppTab.Scan -> ScanScreen()
                 AppTab.Generator -> GeneratorScreen()
-                AppTab.Other -> OtherScreen()
+                AppTab.Other -> OtherScreen(
+                    themeMode = themeMode,
+                    onThemeModeChange = onThemeModeChange,
+                    language = language,
+                    onLanguageChange = onLanguageChange
+                )
             }
         }
     }
@@ -87,6 +107,11 @@ fun QrScannerApp(modifier: Modifier = Modifier) {
 @Composable
 private fun QrScannerAppPreview() {
     QRScannerTheme {
-        QrScannerApp()
+        QrScannerApp(
+            themeMode = ThemeMode.SYSTEM,
+            onThemeModeChange = {},
+            language = AppLanguage.SYSTEM,
+            onLanguageChange = {}
+        )
     }
 }
