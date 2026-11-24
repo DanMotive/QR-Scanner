@@ -10,6 +10,8 @@
     <string name="scan_title">Сканирование QR-кода</string>
     <string name="camera_permission_needed">Для сканирования нужен доступ к камере</string>
     <string name="allow_camera">Разрешить камеру</string>
+    <string name="camera_permission_blocked">Доступ к камере запрещён в настройках приложения</string>
+    <string name="open_settings">Открыть настройки</string>
     <string name="scan_again">Сканировать снова</string>
     <string name="scan_from_photo">Сканировать с фото</string>
     <string name="point_camera_hint">Наведите камеру на QR-код</string>

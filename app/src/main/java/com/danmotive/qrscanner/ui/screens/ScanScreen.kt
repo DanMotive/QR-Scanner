@@ -1,9 +1,14 @@
 package com.danmotive.qrscanner.ui.screens
 
 import android.Manifest
+import android.app.Activity
 import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -32,9 +37,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,8 +55,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.danmotive.qrscanner.R
 import com.danmotive.qrscanner.ui.components.ResultCard
@@ -62,8 +72,17 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
 @Composable
-fun ScanScreen(modifier: Modifier = Modifier) {
+fun ScanScreen(
+    active: Boolean = true,
+    modifier: Modifier = Modifier
+) {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -74,7 +93,7 @@ fun ScanScreen(modifier: Modifier = Modifier) {
     val imageOpenErrorMessage = stringResource(R.string.image_open_error)
     val haptic = LocalHapticFeedback.current
 
-    var hasPermission by remember {
+    var hasPermission by rememberSaveable {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
                 context,
@@ -82,19 +101,36 @@ fun ScanScreen(modifier: Modifier = Modifier) {
             ) == PackageManager.PERMISSION_GRANTED
         )
     }
+    var permissionRequested by rememberSaveable { mutableStateOf(false) }
+    var permissionDeniedPermanently by rememberSaveable { mutableStateOf(false) }
 
-    var result by remember { mutableStateOf<String?>(null) }
+    var result by rememberSaveable { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
     var camera by remember { mutableStateOf<Camera?>(null) }
     val hasFlash = remember(camera) { camera?.cameraInfo?.hasFlashUnit() == true }
-    val scanned = remember { AtomicBoolean(false) }
+    val scanned = remember { AtomicBoolean(result != null) }
+    val analysisEnabled = remember { AtomicBoolean(active) }
     var torchOn by remember { mutableStateOf(false) }
+
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         hasPermission = granted
+        permissionRequested = true
+        if (granted) {
+            permissionDeniedPermanently = false
+        } else {
+            val showRationale = context.findActivity()?.let {
+                ActivityCompat.shouldShowRequestPermissionRationale(
+                    it,
+                    Manifest.permission.CAMERA
+                )
+            } ?: true
+            permissionDeniedPermanently = !showRationale
+        }
     }
+
     val photoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
@@ -153,6 +189,46 @@ fun ScanScreen(modifier: Modifier = Modifier) {
         }
     }
 
+    // Обновляем состояние разрешения при возврате из системных настроек.
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                val granted = ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.CAMERA
+                ) == PackageManager.PERMISSION_GRANTED
+                hasPermission = granted
+                if (granted) {
+                    permissionDeniedPermanently = false
+                } else if (permissionRequested) {
+                    val showRationale = context.findActivity()?.let {
+                        ActivityCompat.shouldShowRequestPermissionRationale(
+                            it,
+                            Manifest.permission.CAMERA
+                        )
+                    } ?: true
+                    permissionDeniedPermanently = !showRationale
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    LaunchedEffect(active) {
+        analysisEnabled.set(active)
+    }
+
+    LaunchedEffect(result) {
+        scanned.set(result != null)
+        if (result != null) {
+            if (camera?.cameraInfo?.hasFlashUnit() == true) {
+                camera?.cameraControl?.enableTorch(false)
+            }
+            torchOn = false
+        }
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
 
         if (hasPermission) {
@@ -205,7 +281,10 @@ fun ScanScreen(modifier: Modifier = Modifier) {
                                 override fun analyze(imageProxy: ImageProxy) {
                                     val mediaImage = imageProxy.image
 
-                                    if (mediaImage == null || scanned.get()) {
+                                    if (mediaImage == null ||
+                                        !analysisEnabled.get() ||
+                                        scanned.get()
+                                    ) {
                                         imageProxy.close()
                                         return
                                     }
@@ -230,7 +309,9 @@ fun ScanScreen(modifier: Modifier = Modifier) {
                                                 )
                                             ) {
                                                 result = value
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                haptic.performHapticFeedback(
+                                                    HapticFeedbackType.LongPress
+                                                )
                                             }
                                         }
                                         .addOnCompleteListener {
@@ -269,11 +350,37 @@ fun ScanScreen(modifier: Modifier = Modifier) {
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(stringResource(R.string.camera_permission_needed))
+                Text(
+                    stringResource(
+                        if (permissionDeniedPermanently) {
+                            R.string.camera_permission_blocked
+                        } else {
+                            R.string.camera_permission_needed
+                        }
+                    )
+                )
                 Button(
-                    onClick = { launcher.launch(Manifest.permission.CAMERA) }
+                    onClick = {
+                        if (permissionDeniedPermanently) {
+                            val intent = Intent(
+                                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                Uri.fromParts("package", context.packageName, null)
+                            )
+                            context.startActivity(intent)
+                        } else {
+                            launcher.launch(Manifest.permission.CAMERA)
+                        }
+                    }
                 ) {
-                    Text(stringResource(R.string.allow_camera))
+                    Text(
+                        stringResource(
+                            if (permissionDeniedPermanently) {
+                                R.string.open_settings
+                            } else {
+                                R.string.allow_camera
+                            }
+                        )
+                    )
                 }
             }
         }
@@ -347,6 +454,7 @@ fun ScanScreen(modifier: Modifier = Modifier) {
                 Text(stringResource(R.string.scan_from_photo))
             }
         }
+
         // Кнопка вспышки
         if (hasFlash) {
             IconButton(

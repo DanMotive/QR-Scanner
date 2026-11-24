@@ -24,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,7 +42,7 @@ import com.danmotive.qrscanner.ui.core.saveQrToGallery
 
 @Composable
 fun GeneratorScreen(modifier: Modifier = Modifier) {
-    var text by remember { mutableStateOf("") }
+    var text by rememberSaveable { mutableStateOf("") }
     val context = LocalContext.current
     val errorGallery = stringResource(R.string.save_error)
     val savedGallery = stringResource(R.string.save_success)

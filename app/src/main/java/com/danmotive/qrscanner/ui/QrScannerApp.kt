@@ -12,9 +12,11 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -89,15 +91,25 @@ fun QrScannerApp(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            when (selectedTab) {
-                AppTab.Scan -> ScanScreen()
-                AppTab.Generator -> GeneratorScreen()
-                AppTab.Other -> OtherScreen(
-                    themeMode = themeMode,
-                    onThemeModeChange = onThemeModeChange,
-                    language = language,
-                    onLanguageChange = onLanguageChange
-                )
+            // Держим сканер в композиции, чтобы камера не пересоздавалась при переключении вкладок.
+            ScanScreen(active = selectedTab == AppTab.Scan)
+
+            if (selectedTab != AppTab.Scan) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    when (selectedTab) {
+                        AppTab.Scan -> Unit
+                        AppTab.Generator -> GeneratorScreen()
+                        AppTab.Other -> OtherScreen(
+                            themeMode = themeMode,
+                            onThemeModeChange = onThemeModeChange,
+                            language = language,
+                            onLanguageChange = onLanguageChange
+                        )
+                    }
+                }
             }
         }
     }
