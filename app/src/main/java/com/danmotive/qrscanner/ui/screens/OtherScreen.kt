@@ -58,17 +58,21 @@ fun OtherScreen(
     var showThemeDialog by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
 
-    val themeName = when (themeMode) {
-        ThemeMode.SYSTEM -> "Системная"
-        ThemeMode.LIGHT -> "Светлая"
-        ThemeMode.DARK -> "Тёмная"
-    }
+    val themeName = stringResource(
+        when (themeMode) {
+            ThemeMode.SYSTEM -> R.string.settings_theme_system
+            ThemeMode.LIGHT -> R.string.settings_theme_light
+            ThemeMode.DARK -> R.string.settings_theme_dark
+        }
+    )
 
-    val languageName = when (language) {
-        AppLanguage.SYSTEM -> "System"
-        AppLanguage.RU -> "Русский"
-        AppLanguage.EN -> "English"
-    }
+    val languageName = stringResource(
+        when (language) {
+            AppLanguage.SYSTEM -> R.string.settings_language_system
+            AppLanguage.RU -> R.string.language_russian
+            AppLanguage.EN -> R.string.language_english
+        }
+    )
 
     val showSoon = {
         Toast.makeText(context, soon, Toast.LENGTH_SHORT).show()
@@ -157,11 +161,11 @@ fun OtherScreen(
     if (showThemeDialog) {
         AlertDialog(
             onDismissRequest = { showThemeDialog = false },
-            title = { Text("Тема приложения") },
+            title = { Text(stringResource(R.string.settings_theme_dialog_title)) },
             text = {
                 Column {
-                    ThemeOption(
-                        title = "Системная",
+                    OptionRow(
+                        title = stringResource(R.string.settings_theme_system),
                         selected = themeMode == ThemeMode.SYSTEM,
                         onClick = {
                             onThemeModeChange(ThemeMode.SYSTEM)
@@ -169,8 +173,8 @@ fun OtherScreen(
                         }
                     )
 
-                    ThemeOption(
-                        title = "Светлая",
+                    OptionRow(
+                        title = stringResource(R.string.settings_theme_light),
                         selected = themeMode == ThemeMode.LIGHT,
                         onClick = {
                             onThemeModeChange(ThemeMode.LIGHT)
@@ -178,8 +182,8 @@ fun OtherScreen(
                         }
                     )
 
-                    ThemeOption(
-                        title = "Тёмная",
+                    OptionRow(
+                        title = stringResource(R.string.settings_theme_dark),
                         selected = themeMode == ThemeMode.DARK,
                         onClick = {
                             onThemeModeChange(ThemeMode.DARK)
@@ -190,7 +194,7 @@ fun OtherScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showThemeDialog = false }) {
-                    Text("Закрыть")
+                    Text(stringResource(R.string.close))
                 }
             }
         )
@@ -199,19 +203,11 @@ fun OtherScreen(
     if (showLanguageDialog) {
         AlertDialog(
             onDismissRequest = { showLanguageDialog = false },
-            title = {
-                Text(
-                    if (language == AppLanguage.EN) {
-                        "App language"
-                    } else {
-                        "Язык приложения"
-                    }
-                )
-            },
+            title = { Text(stringResource(R.string.settings_language_dialog_title)) },
             text = {
                 Column {
-                    LanguageOption(
-                        title = "System",
+                    OptionRow(
+                        title = stringResource(R.string.settings_language_system),
                         selected = language == AppLanguage.SYSTEM,
                         onClick = {
                             onLanguageChange(AppLanguage.SYSTEM)
@@ -219,8 +215,8 @@ fun OtherScreen(
                         }
                     )
 
-                    LanguageOption(
-                        title = "Русский",
+                    OptionRow(
+                        title = stringResource(R.string.language_russian),
                         selected = language == AppLanguage.RU,
                         onClick = {
                             onLanguageChange(AppLanguage.RU)
@@ -228,8 +224,8 @@ fun OtherScreen(
                         }
                     )
 
-                    LanguageOption(
-                        title = "English",
+                    OptionRow(
+                        title = stringResource(R.string.language_english),
                         selected = language == AppLanguage.EN,
                         onClick = {
                             onLanguageChange(AppLanguage.EN)
@@ -240,29 +236,11 @@ fun OtherScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showLanguageDialog = false }) {
-                    Text(if (language == AppLanguage.EN) "Close" else "Закрыть")
+                    Text(stringResource(R.string.close))
                 }
             }
         )
     }
-}
-
-@Composable
-private fun ThemeOption(
-    title: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    OptionRow(title, selected, onClick)
-}
-
-@Composable
-private fun LanguageOption(
-    title: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    OptionRow(title, selected, onClick)
 }
 
 @Composable
