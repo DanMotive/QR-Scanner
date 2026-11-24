@@ -12,7 +12,6 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -69,7 +68,7 @@ fun ResultCard(
                         Text(stringResource(R.string.open_link))
                     }
                 }
-                FilledTonalButton(
+                Button(
                     onClick = onCopy,
                     modifier = Modifier.weight(1f)
                 ) {
