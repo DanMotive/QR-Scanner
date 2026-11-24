@@ -9,9 +9,11 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.os.LocaleListCompat
 import androidx.core.view.WindowCompat
@@ -30,6 +32,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         ProcessCameraProvider.getInstance(this)
+        val activityWindow = window
         setContent {
             val context = LocalContext.current
 
@@ -41,8 +44,19 @@ class MainActivity : AppCompatActivity() {
 
             val settings by settingsViewModel.settings.collectAsState()
 
+            // Локальное состояние меняется сразу по клику, не ждём Flow/DataStore.
+            var themeMode by remember { mutableStateOf(settings.themeMode) }
+            var language by remember { mutableStateOf(settings.language) }
+
+            LaunchedEffect(settings.themeMode) {
+                themeMode = settings.themeMode
+            }
             LaunchedEffect(settings.language) {
-                val languageTag = when (settings.language) {
+                language = settings.language
+            }
+
+            LaunchedEffect(language) {
+                val languageTag = when (language) {
                     AppLanguage.SYSTEM -> ""
                     AppLanguage.RU -> "ru"
                     AppLanguage.EN -> "en"
@@ -58,25 +72,35 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            val darkTheme = when (settings.themeMode) {
-                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+            val systemDark = isSystemInDarkTheme()
+            val darkTheme = when (themeMode) {
+                ThemeMode.SYSTEM -> systemDark
                 ThemeMode.LIGHT -> false
                 ThemeMode.DARK -> true
             }
 
-            SideEffect {
-                WindowCompat.getInsetsController(window, window.decorView).apply {
-                    isAppearanceLightStatusBars = !darkTheme
-                    isAppearanceLightNavigationBars = !darkTheme
+            QRScannerTheme(themeMode = themeMode) {
+                LaunchedEffect(darkTheme) {
+                    WindowCompat.getInsetsController(
+                        activityWindow,
+                        activityWindow.decorView
+                    ).apply {
+                        isAppearanceLightStatusBars = !darkTheme
+                        isAppearanceLightNavigationBars = !darkTheme
+                    }
                 }
-            }
 
-            QRScannerTheme(themeMode = settings.themeMode) {
                 QrScannerApp(
-                    themeMode = settings.themeMode,
-                    onThemeModeChange = settingsViewModel::setThemeMode,
-                    language = settings.language,
-                    onLanguageChange = settingsViewModel::setLanguage
+                    themeMode = themeMode,
+                    onThemeModeChange = { mode ->
+                        themeMode = mode
+                        settingsViewModel.setThemeMode(mode)
+                    },
+                    language = language,
+                    onLanguageChange = { newLanguage ->
+                        language = newLanguage
+                        settingsViewModel.setLanguage(newLanguage)
+                    }
                 )
             }
         }

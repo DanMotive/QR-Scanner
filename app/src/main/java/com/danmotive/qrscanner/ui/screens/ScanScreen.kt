@@ -236,6 +236,9 @@ fun ScanScreen(
                 factory = { ctx ->
                     PreviewView(ctx).also {
                         it.scaleType = PreviewView.ScaleType.FILL_CENTER
+                        // TextureView вместо SurfaceView: меньше чёрных вспышек
+                        // при перерисовке Compose и смене темы.
+                        it.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
                         previewView = it
                     }
                 },

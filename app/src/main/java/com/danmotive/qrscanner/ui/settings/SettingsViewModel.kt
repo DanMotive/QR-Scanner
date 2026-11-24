@@ -6,31 +6,53 @@ import com.danmotive.qrscanner.data.AppLanguage
 import com.danmotive.qrscanner.data.AppSettings
 import com.danmotive.qrscanner.data.SettingsRepository
 import com.danmotive.qrscanner.data.ThemeMode
-import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class SettingsViewModel(
     private val repository: SettingsRepository
 ) : ViewModel() {
 
-    val settings: StateFlow<AppSettings> = repository.settings.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = AppSettings()
-    )
+    private val _settings = MutableStateFlow(AppSettings())
+    val settings: StateFlow<AppSettings> = _settings.asStateFlow()
+
+    private var pendingWrites = 0
+
+    init {
+        viewModelScope.launch {
+            // Читаем сохранённые настройки один раз: дальше источник истины —
+            // оптимистичное состояние в памяти, без лишних повторных эмиссий DataStore.
+            val stored = repository.settings.first()
+            if (pendingWrites == 0) {
+                _settings.value = stored
+            }
+        }
+    }
 
     fun setThemeMode(mode: ThemeMode) {
-        viewModelScope.launch {
-            repository.setThemeMode(mode)
-        }
+        if (_settings.value.themeMode == mode) return
+        _settings.update { it.copy(themeMode = mode) }
+        persist { repository.setThemeMode(mode) }
     }
 
     fun setLanguage(language: AppLanguage) {
+        if (_settings.value.language == language) return
+        _settings.update { it.copy(language = language) }
+        persist { repository.setLanguage(language) }
+    }
+
+    private fun persist(write: suspend () -> Unit) {
+        pendingWrites++
         viewModelScope.launch {
-            repository.setLanguage(language)
+            try {
+                write()
+            } finally {
+                pendingWrites--
+            }
         }
     }
 }
-
