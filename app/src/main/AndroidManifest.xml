@@ -20,7 +20,6 @@
 
         <activity
             android:name=".MainActivity"
-            android:configChanges="locale|layoutDirection"
             android:exported="true"
             android:theme="@style/Theme.QRScanner"
             android:windowSoftInputMode="adjustResize">

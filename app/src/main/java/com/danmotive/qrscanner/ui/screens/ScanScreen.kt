@@ -80,7 +80,6 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
 
 @Composable
 fun ScanScreen(
-    active: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -110,7 +109,6 @@ fun ScanScreen(
     var camera by remember { mutableStateOf<Camera?>(null) }
     val hasFlash = remember(camera) { camera?.cameraInfo?.hasFlashUnit() == true }
     val scanned = remember { AtomicBoolean(result != null) }
-    val analysisEnabled = remember { AtomicBoolean(active) }
     var torchOn by remember { mutableStateOf(false) }
 
     val launcher = rememberLauncherForActivityResult(
@@ -189,7 +187,6 @@ fun ScanScreen(
         }
     }
 
-    // Обновляем состояние разрешения при возврате из системных настроек.
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -215,10 +212,6 @@ fun ScanScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(active) {
-        analysisEnabled.set(active)
-    }
-
     LaunchedEffect(result) {
         scanned.set(result != null)
         if (result != null) {
@@ -236,8 +229,6 @@ fun ScanScreen(
                 factory = { ctx ->
                     PreviewView(ctx).also {
                         it.scaleType = PreviewView.ScaleType.FILL_CENTER
-                        // TextureView вместо SurfaceView: меньше чёрных вспышек
-                        // при перерисовке Compose и смене темы.
                         it.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
                         previewView = it
                     }
@@ -284,10 +275,7 @@ fun ScanScreen(
                                 override fun analyze(imageProxy: ImageProxy) {
                                     val mediaImage = imageProxy.image
 
-                                    if (mediaImage == null ||
-                                        !analysisEnabled.get() ||
-                                        scanned.get()
-                                    ) {
+                                    if (mediaImage == null || scanned.get()) {
                                         imageProxy.close()
                                         return
                                     }
@@ -375,6 +363,7 @@ fun ScanScreen(
                         }
                     }
                 ) {
+                    // Кнопка, если нет разрешения к камере
                     Text(
                         stringResource(
                             if (permissionDeniedPermanently) {
@@ -402,6 +391,7 @@ fun ScanScreen(
         result?.let { value ->
             ResultCard(
                 value = value,
+                // Кнопка открытия ссылки
                 onOpenLink = {
                     try {
                         context.startActivity(
@@ -415,6 +405,7 @@ fun ScanScreen(
                         ).show()
                     }
                 },
+                // Кнопка копирования
                 onCopy = {
                     clipboard.setText(AnnotatedString(value))
                     Toast.makeText(
@@ -423,6 +414,7 @@ fun ScanScreen(
                         Toast.LENGTH_SHORT
                     ).show()
                 },
+                // Кнопка скана снова
                 onScanAgain = {
                     result = null
                     scanned.set(false)
@@ -433,7 +425,7 @@ fun ScanScreen(
                     .padding(16.dp)
             )
         }
-
+// Подсказка в центре
         if (result == null && hasPermission) {
             Text(
                 stringResource(R.string.point_camera_hint),

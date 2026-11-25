@@ -24,8 +24,6 @@ class SettingsViewModel(
 
     init {
         viewModelScope.launch {
-            // Читаем сохранённые настройки один раз: дальше источник истины —
-            // оптимистичное состояние в памяти, без лишних повторных эмиссий DataStore.
             val stored = repository.settings.first()
             if (pendingWrites == 0) {
                 _settings.value = stored

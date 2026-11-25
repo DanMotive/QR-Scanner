@@ -66,7 +66,6 @@ fun GeneratorScreen(modifier: Modifier = Modifier) {
         if (matrix != null) {
             val bitmap = remember(matrix) { bitMatrixToBitmap(matrix) }
 
-            // зона QR: белый фон обязателен — контраст
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -88,7 +87,7 @@ fun GeneratorScreen(modifier: Modifier = Modifier) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Сохранить в галерею
+                // Кнопка сейва в галерею
                 Button(
                     onClick = {
                         val uri = saveQrToGallery(context, bitmap)
@@ -100,7 +99,7 @@ fun GeneratorScreen(modifier: Modifier = Modifier) {
                 ) {
                     Text(stringResource(R.string.save))
                 }
-                // Поделиться
+                // Кнопка поделиться
                 FilledTonalButton(
                     onClick = {
                         val uri = saveQrToCache(context, bitmap)

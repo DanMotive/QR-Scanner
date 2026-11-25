@@ -10,13 +10,12 @@ import androidx.core.content.FileProvider
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.set
 import com.google.zxing.BarcodeFormat
+import com.google.zxing.EncodeHintType
 import com.google.zxing.common.BitMatrix
 import com.google.zxing.qrcode.QRCodeWriter
 import java.io.File
 import java.io.FileOutputStream
-import com.google.zxing.EncodeHintType
 
-// Текст в матрицу
 fun encodeQr(text: String, size: Int): BitMatrix? {
     if (text.isEmpty()) return null
     return try {
@@ -35,7 +34,7 @@ fun encodeQr(text: String, size: Int): BitMatrix? {
         null
     }
 }
-// Матрицу в карту
+
 fun bitMatrixToBitmap(matrix: BitMatrix): Bitmap {
     val bitmap = createBitmap(matrix.width, matrix.height)
     for (y in 0 until matrix.height) {
@@ -45,7 +44,7 @@ fun bitMatrixToBitmap(matrix: BitMatrix): Bitmap {
     }
     return bitmap
 }
-// Сохранить
+
 fun saveQrToGallery(context: Context, bitmap: Bitmap): Uri? {
     val values = ContentValues().apply {
         put(MediaStore.Images.Media.DISPLAY_NAME, "qr_${System.currentTimeMillis()}.png")
@@ -55,7 +54,7 @@ fun saveQrToGallery(context: Context, bitmap: Bitmap): Uri? {
     val uri = context.contentResolver.insert(
         MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
         values
-    ) ?: return null                      // система не дала запись, надо обработать
+    ) ?: return null
 
     context.contentResolver.openOutputStream(uri)?.use { stream ->
         bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
@@ -63,7 +62,7 @@ fun saveQrToGallery(context: Context, bitmap: Bitmap): Uri? {
 
     return uri
 }
-// Поделиться
+
 fun saveQrToCache(context: Context, bitmap: Bitmap): Uri? {
     val dir = File(context.cacheDir, "qr")
     dir.mkdirs()

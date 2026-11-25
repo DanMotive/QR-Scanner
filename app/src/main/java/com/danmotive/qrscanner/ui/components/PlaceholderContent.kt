@@ -20,10 +20,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
-/**
- * Заглушка содержимого вкладки: иконка, заголовок и описание.
- * Используется, пока реальные экраны не реализованы.
- */
 @Composable
 fun PlaceholderContent(
     icon: ImageVector,

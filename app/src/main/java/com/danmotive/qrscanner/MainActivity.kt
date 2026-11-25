@@ -7,14 +7,21 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.graphics.drawable.toDrawable
 import androidx.core.os.LocaleListCompat
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -25,14 +32,29 @@ import com.danmotive.qrscanner.ui.QrScannerApp
 import com.danmotive.qrscanner.ui.settings.SettingsViewModel
 import com.danmotive.qrscanner.ui.settings.SettingsViewModelFactory
 import com.danmotive.qrscanner.ui.theme.QRScannerTheme
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
+
+private const val STATE_FADE_IN = "fade_in_from_black"
+private const val FADE_OUT_MS = 400
+private const val BLACK_HOLD_MS = 200L
+private const val FADE_IN_MS = 450
 
 class MainActivity : AppCompatActivity() {
+
+    private var pendingLanguageChange = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         ProcessCameraProvider.getInstance(this)
-        val activityWindow = window
+
+        val fadeInFromBlack = savedInstanceState?.getBoolean(STATE_FADE_IN) == true
+        if (fadeInFromBlack) {
+            window.setBackgroundDrawable(0xFF000000.toInt().toDrawable())
+        }
+
         setContent {
             val context = LocalContext.current
 
@@ -44,65 +66,88 @@ class MainActivity : AppCompatActivity() {
 
             val settings by settingsViewModel.settings.collectAsState()
 
-            // Локальное состояние меняется сразу по клику, не ждём Flow/DataStore.
-            var themeMode by remember { mutableStateOf(settings.themeMode) }
-            var language by remember { mutableStateOf(settings.language) }
-
-            LaunchedEffect(settings.themeMode) {
-                themeMode = settings.themeMode
-            }
-            LaunchedEffect(settings.language) {
-                language = settings.language
+            val scope = rememberCoroutineScope()
+            val blackout = remember {
+                Animatable(if (fadeInFromBlack) 1f else 0f)
             }
 
-            LaunchedEffect(language) {
-                val languageTag = when (language) {
-                    AppLanguage.SYSTEM -> ""
-                    AppLanguage.RU -> "ru"
-                    AppLanguage.EN -> "en"
-                }
-
-                val currentLanguage =
-                    AppCompatDelegate.getApplicationLocales().toLanguageTags()
-
-                if (currentLanguage != languageTag) {
-                    AppCompatDelegate.setApplicationLocales(
-                        LocaleListCompat.forLanguageTags(languageTag)
-                    )
+            LaunchedEffect(Unit) {
+                if (fadeInFromBlack) {
+                    blackout.animateTo(0f, tween(FADE_IN_MS))
                 }
             }
 
-            val systemDark = isSystemInDarkTheme()
-            val darkTheme = when (themeMode) {
-                ThemeMode.SYSTEM -> systemDark
+            val darkTheme = when (settings.themeMode) {
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
                 ThemeMode.LIGHT -> false
                 ThemeMode.DARK -> true
             }
 
-            QRScannerTheme(themeMode = themeMode) {
-                LaunchedEffect(darkTheme) {
-                    WindowCompat.getInsetsController(
-                        activityWindow,
-                        activityWindow.decorView
-                    ).apply {
-                        isAppearanceLightStatusBars = !darkTheme
-                        isAppearanceLightNavigationBars = !darkTheme
-                    }
+            LaunchedEffect(darkTheme) {
+                WindowCompat.getInsetsController(window, window.decorView).apply {
+                    isAppearanceLightStatusBars = !darkTheme
+                    isAppearanceLightNavigationBars = !darkTheme
+                }
+            }
+
+            Box {
+                QRScannerTheme(themeMode = settings.themeMode) {
+                    QrScannerApp(
+                        themeMode = settings.themeMode,
+                        onThemeModeChange = { mode ->
+                            if (mode != settings.themeMode &&
+                                !blackout.isRunning &&
+                                blackout.value == 0f
+                            ) {
+                                scope.launch {
+                                    blackout.animateTo(1f, tween(FADE_OUT_MS))
+                                    settingsViewModel.setThemeMode(mode)
+                                    delay(BLACK_HOLD_MS.milliseconds)
+                                    blackout.animateTo(0f, tween(FADE_OUT_MS))
+                                }
+                            }
+                        },
+                        language = settings.language,
+                        onLanguageChange = { newLanguage ->
+                            if (newLanguage != settings.language &&
+                                !blackout.isRunning &&
+                                blackout.value == 0f
+                            ) {
+                                scope.launch {
+                                    blackout.animateTo(1f, tween(FADE_OUT_MS))
+                                    settingsViewModel.setLanguage(newLanguage)
+                                    pendingLanguageChange = true
+                                    AppCompatDelegate.setApplicationLocales(
+                                        LocaleListCompat.forLanguageTags(newLanguage.tag)
+                                    )
+                                    delay(FADE_IN_MS.toLong().milliseconds)
+                                    blackout.animateTo(0f, tween(FADE_IN_MS))
+                                }
+                            }
+                        }
+                    )
                 }
 
-                QrScannerApp(
-                    themeMode = themeMode,
-                    onThemeModeChange = { mode ->
-                        themeMode = mode
-                        settingsViewModel.setThemeMode(mode)
-                    },
-                    language = language,
-                    onLanguageChange = { newLanguage ->
-                        language = newLanguage
-                        settingsViewModel.setLanguage(newLanguage)
-                    }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = blackout.value))
                 )
             }
         }
     }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        if (pendingLanguageChange) {
+            outState.putBoolean(STATE_FADE_IN, true)
+        }
+    }
 }
+
+private val AppLanguage.tag: String
+    get() = when (this) {
+        AppLanguage.SYSTEM -> ""
+        AppLanguage.RU -> "ru"
+        AppLanguage.EN -> "en"
+    }
