@@ -18,6 +18,7 @@ Package и application ID: `com.danmotive.qrscanner`.
 | `ui/core/`                       | Вспомогательные функции, генерация QR, сохранение и шаринг |
 | `data/SettingsRepository.kt`     | Модель настроек и их хранение                              |
 | `ui/settings/`                   | StateFlow настроек, ViewModel и её фабрика                 |
+| `ui/updates/`                    | Состояние проверки обновлений и её ViewModel               |
 | `ui/theme/`                      | Цвета, типографика и Compose-тема                          |
 
 Перед изменениями проверьте `git status` и относящийся к задаче diff.
@@ -32,6 +33,10 @@ Package и application ID: `com.danmotive.qrscanner`.
 - Настройки проходят через `SettingsViewModel` и `SettingsRepository`.
   Имена enum сохраняются в DataStore как строки; переименование значений или
   ключей `theme_mode` и `language` требует учёта уже сохранённых настроек.
+- Обновления проверяются через `UpdatesRepository` и `UpdatesViewModel`.
+  ViewModel создаётся в `MainActivity`, состояние и callbacks передаются
+  в `QrScannerApp` и `OtherScreen`. При найденной версии по нажатию открывается страница
+  GitHub Releases; скачивания APK внутри приложения нет.
 - `QrScannerApp` включает только выбранный экран через `when`.
   Удаление `ScanScreen` из композиции освобождает камеру, ML Kit-клиент
   и executor. При изменении навигации сохраняйте освобождение этих ресурсов.

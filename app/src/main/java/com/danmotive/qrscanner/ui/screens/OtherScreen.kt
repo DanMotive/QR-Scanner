@@ -34,6 +34,7 @@ import com.danmotive.qrscanner.BuildConfig
 import com.danmotive.qrscanner.R
 import com.danmotive.qrscanner.data.AppLanguage
 import com.danmotive.qrscanner.data.ThemeMode
+import com.danmotive.qrscanner.ui.updates.UpdateState
 
 private const val GITHUB_URL =
     "https://github.com/DanMotive/QR-Scanner"
@@ -47,13 +48,31 @@ fun OtherScreen(
     onThemeModeChange: (ThemeMode) -> Unit,
     language: AppLanguage,
     onLanguageChange: (AppLanguage) -> Unit,
+    updateState: UpdateState,
+    onCheckUpdates: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
 
-    val soon = stringResource(R.string.settings_coming_soon)
     val openError = stringResource(R.string.error_link)
+    val checkUpdatesTitle = stringResource(R.string.settings_updates)
+    val openReleaseTitle = stringResource(R.string.updates_open_release)
+    val checkingUpdatesText = stringResource(R.string.updates_checking)
+    val noUpdatesText = stringResource(R.string.updates_no_updates)
+    val updateErrorText = stringResource(R.string.updates_check_failed)
+    val availableUpdateText = stringResource(
+        R.string.updates_available_version,
+        (updateState as? UpdateState.Available)?.version.orEmpty()
+    )
+
+    val updatesValue = when (updateState) {
+        UpdateState.Idle -> null
+        UpdateState.Checking -> checkingUpdatesText
+        UpdateState.NoUpdates -> noUpdatesText
+        UpdateState.Error -> updateErrorText
+        is UpdateState.Available -> availableUpdateText
+    }
 
     var showThemeDialog by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
@@ -73,10 +92,6 @@ fun OtherScreen(
             AppLanguage.EN -> R.string.language_english
         }
     )
-
-    val showSoon = {
-        Toast.makeText(context, soon, Toast.LENGTH_SHORT).show()
-    }
 
     val openUrl: (String) -> Unit = { url ->
         try {
@@ -153,8 +168,20 @@ fun OtherScreen(
         )
 
         SettingRow(
-            title = stringResource(R.string.settings_updates),
-            onClick = showSoon
+            title = if (updateState is UpdateState.Available) {
+                openReleaseTitle
+            } else {
+                checkUpdatesTitle
+            },
+            value = updatesValue,
+            enabled = updateState != UpdateState.Checking,
+            onClick = {
+                if (updateState is UpdateState.Available) {
+                    openUrl("$GITHUB_URL/releases/latest")
+                } else {
+                    onCheckUpdates()
+                }
+            }
         )
     }
 
@@ -272,12 +299,13 @@ private fun OptionRow(
 private fun SettingRow(
     title: String,
     value: String? = null,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 24.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

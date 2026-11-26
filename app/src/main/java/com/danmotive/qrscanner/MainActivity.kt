@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.os.LocaleListCompat
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.danmotive.qrscanner.data.AppLanguage
 import com.danmotive.qrscanner.data.SettingsRepository
@@ -32,6 +33,7 @@ import com.danmotive.qrscanner.ui.QrScannerApp
 import com.danmotive.qrscanner.ui.settings.SettingsViewModel
 import com.danmotive.qrscanner.ui.settings.SettingsViewModelFactory
 import com.danmotive.qrscanner.ui.theme.QRScannerTheme
+import com.danmotive.qrscanner.ui.updates.UpdatesViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
@@ -65,6 +67,8 @@ class MainActivity : AppCompatActivity() {
             )
 
             val settings by settingsViewModel.settings.collectAsState()
+            val updatesViewModel: UpdatesViewModel = viewModel()
+            val updateState by updatesViewModel.state.collectAsStateWithLifecycle()
 
             val scope = rememberCoroutineScope()
             val blackout = remember {
@@ -124,7 +128,9 @@ class MainActivity : AppCompatActivity() {
                                     blackout.animateTo(0f, tween(FADE_IN_MS))
                                 }
                             }
-                        }
+                        },
+                        updateState = updateState,
+                        onCheckUpdates = updatesViewModel::checkUpdates
                     )
                 }
 

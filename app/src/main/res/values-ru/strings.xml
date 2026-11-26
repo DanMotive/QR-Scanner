@@ -44,6 +44,11 @@
     <string name="settings_github">GitHub</string>
     <string name="settings_telegram">Telegram-канал</string>
     <string name="settings_updates">Проверить обновления</string>
-    <string name="settings_coming_soon">Скоро</string>
+    <string name="updates_checking">Проверяем…</string>
+    <string name="updates_no_updates">Обновлений нет</string>
+    <string name="updates_check_failed">Ошибка проверки</string>
+    <string name="updates_available_version">Доступна %1$s</string>
+    <string name="updates_open_release">Открыть релиз</string>
+    <string name="updates_available_description">Доступно обновление</string>
     <string name="close">Закрыть</string>
 </resources>

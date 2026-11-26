@@ -9,6 +9,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -31,6 +33,7 @@ import com.danmotive.qrscanner.ui.screens.GeneratorScreen
 import com.danmotive.qrscanner.ui.screens.OtherScreen
 import com.danmotive.qrscanner.ui.screens.ScanScreen
 import com.danmotive.qrscanner.ui.theme.QRScannerTheme
+import com.danmotive.qrscanner.ui.updates.UpdateState
 
 enum class AppTab(
     @param:StringRes val labelRes: Int,
@@ -47,8 +50,13 @@ fun QrScannerApp(
     onThemeModeChange: (ThemeMode) -> Unit,
     language: AppLanguage,
     onLanguageChange: (AppLanguage) -> Unit,
+    updateState: UpdateState,
+    onCheckUpdates: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val updateAvailableDescription = stringResource(R.string.updates_available_description)
+    val updateAvailable = updateState is UpdateState.Available
+
     var selectedTab by rememberSaveable {
         mutableStateOf(AppTab.Scan)
     }
@@ -69,10 +77,19 @@ fun QrScannerApp(
                         selected = selectedTab == tab,
                         onClick = { selectedTab = tab },
                         icon = {
-                            Icon(
-                                imageVector = tab.icon,
-                                contentDescription = null
-                            )
+                            val showUpdateBadge = tab == AppTab.Other && updateAvailable
+                            BadgedBox(
+                                badge = { if (showUpdateBadge) Badge() }
+                            ) {
+                                Icon(
+                                    imageVector = tab.icon,
+                                    contentDescription = if (showUpdateBadge) {
+                                        updateAvailableDescription
+                                    } else {
+                                        null
+                                    }
+                                )
+                            }
                         },
                         label = {
                             Text(text = stringResource(tab.labelRes))
@@ -94,7 +111,9 @@ fun QrScannerApp(
                     themeMode = themeMode,
                     onThemeModeChange = onThemeModeChange,
                     language = language,
-                    onLanguageChange = onLanguageChange
+                    onLanguageChange = onLanguageChange,
+                    updateState = updateState,
+                    onCheckUpdates = onCheckUpdates
                 )
             }
         }
@@ -109,7 +128,9 @@ private fun QrScannerAppPreview() {
             themeMode = ThemeMode.SYSTEM,
             onThemeModeChange = {},
             language = AppLanguage.SYSTEM,
-            onLanguageChange = {}
+            onLanguageChange = {},
+            updateState = UpdateState.Idle,
+            onCheckUpdates = {}
         )
     }
 }

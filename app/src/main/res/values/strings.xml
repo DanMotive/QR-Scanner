@@ -44,7 +44,12 @@
     <string name="settings_github">GitHub</string>
     <string name="settings_telegram">Telegram channel</string>
     <string name="settings_updates">Check for updates</string>
-    <string name="settings_coming_soon">Coming soon</string>
+    <string name="updates_checking">Checking…</string>
+    <string name="updates_no_updates">No updates</string>
+    <string name="updates_check_failed">Check failed</string>
+    <string name="updates_available_version">%1$s available</string>
+    <string name="updates_open_release">Open release</string>
+    <string name="updates_available_description">Update available</string>
     <string name="close">Close</string>
     <string name="language_russian" translatable="false">Русский</string>
     <string name="language_english" translatable="false">English</string>
