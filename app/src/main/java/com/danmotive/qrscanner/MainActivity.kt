@@ -37,9 +37,9 @@ import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
 private const val STATE_FADE_IN = "fade_in_from_black"
-private const val FADE_OUT_MS = 400
-private const val BLACK_HOLD_MS = 200L
-private const val FADE_IN_MS = 450
+private const val FADE_OUT_MS = 500
+private const val BLACK_HOLD_MS = 300L
+private const val FADE_IN_MS = 350
 
 class MainActivity : AppCompatActivity() {
 

@@ -4,6 +4,11 @@ on:
   push:
     tags: [ 'v*' ]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag, for example v0.1'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -14,6 +19,8 @@ jobs:
     environment: release
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
 
       - uses: actions/setup-java@v4
         with:
@@ -30,11 +37,12 @@ jobs:
           [ -d "$ANDROID_HOME/build-tools/37.0.0" ] || "$SDKMANAGER" "build-tools;37.0.0"
 
       - name: Check version matches tag
-        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          echo "tag=$GITHUB_REF_NAME versionName=$VERSION"
-          grep -q "versionName = \"$VERSION\"" app/build.gradle.kts
+          VERSION="${RELEASE_TAG#v}"
+          echo "tag=$RELEASE_TAG versionName=$VERSION"
+          grep -Fq "versionName = \"$VERSION\"" app/build.gradle.kts
 
       - name: Check signing secrets
         env:
@@ -75,10 +83,11 @@ jobs:
         run: ls -lh app/build/outputs/apk/release/
 
       - name: Upload APKs to draft release
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
           files: app/build/outputs/apk/release/*.apk
+          fail_on_unmatched_files: true
           generate_release_notes: true
           draft: true
 
