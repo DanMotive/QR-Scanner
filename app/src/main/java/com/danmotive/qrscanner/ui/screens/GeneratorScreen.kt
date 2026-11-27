@@ -2,6 +2,7 @@ package com.danmotive.qrscanner.ui.screens
 
 import android.content.Intent
 import android.widget.Toast
+import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,12 +15,19 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,30 +44,78 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.danmotive.qrscanner.R
 import com.danmotive.qrscanner.ui.core.bitMatrixToBitmap
-import com.danmotive.qrscanner.ui.core.encodeQr
-import com.danmotive.qrscanner.ui.core.saveQrToCache
-import com.danmotive.qrscanner.ui.core.saveQrToGallery
+import com.danmotive.qrscanner.ui.core.encodeBarcode
+import com.danmotive.qrscanner.ui.core.generatableBarcodeFormats
+import com.danmotive.qrscanner.ui.core.saveBarcodeToCache
+import com.danmotive.qrscanner.ui.core.saveBarcodeToGallery
+import com.google.zxing.BarcodeFormat
 
 @Composable
 fun GeneratorScreen(modifier: Modifier = Modifier) {
     var text by rememberSaveable { mutableStateOf("") }
+    var selectedFormat by rememberSaveable { mutableStateOf(BarcodeFormat.QR_CODE) }
+    var formatMenuExpanded by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val errorGallery = stringResource(R.string.save_error)
     val savedGallery = stringResource(R.string.save_success)
     val shareTitle = stringResource(R.string.share_via)
-    val matrix = encodeQr(text, 512)
+    val invalidBarcodeMessage = stringResource(R.string.barcode_invalid_input)
+    val (width, height) = when (selectedFormat) {
+        BarcodeFormat.QR_CODE,
+        BarcodeFormat.DATA_MATRIX,
+        BarcodeFormat.AZTEC -> 512 to 512
+
+        BarcodeFormat.PDF_417 -> 768 to 384
+        else -> 1024 to 320
+    }
+    val matrix = remember(text, selectedFormat) {
+        encodeBarcode(text, selectedFormat, width, height)
+    }
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            Box {
+                TextButton(onClick = { formatMenuExpanded = true }) {
+                    Text(stringResource(selectedFormat.labelResource()))
+                    Icon(Icons.Default.ArrowDropDown, contentDescription = null)
+                }
+
+                DropdownMenu(
+                    expanded = formatMenuExpanded,
+                    onDismissRequest = { formatMenuExpanded = false }
+                ) {
+                    generatableBarcodeFormats.forEach { format ->
+                        DropdownMenuItem(
+                            text = { Text(stringResource(format.labelResource())) },
+                            trailingIcon = if (format == selectedFormat) {
+                                { Icon(Icons.Default.Check, contentDescription = null) }
+                            } else {
+                                null
+                            },
+                            onClick = {
+                                selectedFormat = format
+                                formatMenuExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
         OutlinedTextField(
             value = text,
             onValueChange = { text = it },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            label = { Text(stringResource(R.string.generator_hint)) })
+            label = { Text(stringResource(R.string.generator_hint)) }
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -69,7 +125,7 @@ fun GeneratorScreen(modifier: Modifier = Modifier) {
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(1f),
+                    .aspectRatio(matrix.width.toFloat() / matrix.height),
                 color = Color.White,
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -90,7 +146,7 @@ fun GeneratorScreen(modifier: Modifier = Modifier) {
                 // Кнопка сейва в галерею
                 Button(
                     onClick = {
-                        val uri = saveQrToGallery(context, bitmap)
+                        val uri = saveBarcodeToGallery(context, bitmap)
                         Toast.makeText(
                             context, if (uri != null) savedGallery else errorGallery, Toast.LENGTH_SHORT
                         ).show()
@@ -102,7 +158,7 @@ fun GeneratorScreen(modifier: Modifier = Modifier) {
                 // Кнопка поделиться
                 FilledTonalButton(
                     onClick = {
-                        val uri = saveQrToCache(context, bitmap)
+                        val uri = saveBarcodeToCache(context, bitmap)
                         if (uri != null) {
                             val intent = Intent(Intent.ACTION_SEND).apply {
                                 type = "image/png"
@@ -119,7 +175,7 @@ fun GeneratorScreen(modifier: Modifier = Modifier) {
                     Text(stringResource(R.string.share))
                 }
             }
-        } else {
+        } else if (text.isEmpty()) {
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
@@ -131,6 +187,36 @@ fun GeneratorScreen(modifier: Modifier = Modifier) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        } else {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+            ) {
+                Text(
+                    text = invalidBarcodeMessage,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
         }
     }
+}
+
+@StringRes
+private fun BarcodeFormat.labelResource(): Int = when (this) {
+    BarcodeFormat.QR_CODE -> R.string.barcode_format_qr
+    BarcodeFormat.DATA_MATRIX -> R.string.barcode_format_data_matrix
+    BarcodeFormat.AZTEC -> R.string.barcode_format_aztec
+    BarcodeFormat.PDF_417 -> R.string.barcode_format_pdf417
+    BarcodeFormat.EAN_13 -> R.string.barcode_format_ean13
+    BarcodeFormat.EAN_8 -> R.string.barcode_format_ean8
+    BarcodeFormat.UPC_A -> R.string.barcode_format_upca
+    BarcodeFormat.UPC_E -> R.string.barcode_format_upce
+    BarcodeFormat.CODE_128 -> R.string.barcode_format_code128
+    BarcodeFormat.CODE_39 -> R.string.barcode_format_code39
+    BarcodeFormat.CODE_93 -> R.string.barcode_format_code93
+    BarcodeFormat.ITF -> R.string.barcode_format_itf
+    BarcodeFormat.CODABAR -> R.string.barcode_format_codabar
+    else -> R.string.barcode_format_qr
 }

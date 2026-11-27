@@ -11,23 +11,39 @@ import androidx.core.graphics.createBitmap
 import androidx.core.graphics.set
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
+import com.google.zxing.MultiFormatWriter
 import com.google.zxing.common.BitMatrix
-import com.google.zxing.qrcode.QRCodeWriter
 import java.io.File
 import java.io.FileOutputStream
 
-fun encodeQr(text: String, size: Int): BitMatrix? {
+val generatableBarcodeFormats = listOf(
+    BarcodeFormat.QR_CODE,
+    BarcodeFormat.DATA_MATRIX,
+    BarcodeFormat.AZTEC,
+    BarcodeFormat.PDF_417,
+    BarcodeFormat.EAN_13,
+    BarcodeFormat.EAN_8,
+    BarcodeFormat.UPC_A,
+    BarcodeFormat.UPC_E,
+    BarcodeFormat.CODE_128,
+    BarcodeFormat.CODE_39,
+    BarcodeFormat.CODE_93,
+    BarcodeFormat.ITF,
+    BarcodeFormat.CODABAR
+)
+
+fun encodeBarcode(text: String, format: BarcodeFormat, width: Int, height: Int): BitMatrix? {
     if (text.isEmpty()) return null
     return try {
         val hints = mapOf(
             EncodeHintType.CHARACTER_SET to "UTF-8"
         )
 
-        QRCodeWriter().encode(
+        MultiFormatWriter().encode(
             text,
-            BarcodeFormat.QR_CODE,
-            size,
-            size,
+            format,
+            width,
+            height,
             hints
         )
     } catch (_: Exception) {
@@ -45,9 +61,9 @@ fun bitMatrixToBitmap(matrix: BitMatrix): Bitmap {
     return bitmap
 }
 
-fun saveQrToGallery(context: Context, bitmap: Bitmap): Uri? {
+fun saveBarcodeToGallery(context: Context, bitmap: Bitmap): Uri? {
     val values = ContentValues().apply {
-        put(MediaStore.Images.Media.DISPLAY_NAME, "qr_${System.currentTimeMillis()}.png")
+        put(MediaStore.Images.Media.DISPLAY_NAME, "barcode_${System.currentTimeMillis()}.png")
         put(MediaStore.Images.Media.MIME_TYPE, "image/png")
     }
 
@@ -63,11 +79,11 @@ fun saveQrToGallery(context: Context, bitmap: Bitmap): Uri? {
     return uri
 }
 
-fun saveQrToCache(context: Context, bitmap: Bitmap): Uri? {
+fun saveBarcodeToCache(context: Context, bitmap: Bitmap): Uri? {
     val dir = File(context.cacheDir, "qr")
     dir.mkdirs()
 
-    val file = File(dir, "qr_${System.currentTimeMillis()}.png")
+    val file = File(dir, "barcode_${System.currentTimeMillis()}.png")
 
     val stream = FileOutputStream(file)
     stream.use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }

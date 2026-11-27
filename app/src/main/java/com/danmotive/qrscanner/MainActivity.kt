@@ -16,8 +16,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -69,8 +71,12 @@ class MainActivity : AppCompatActivity() {
             val settings by settingsViewModel.settings.collectAsState()
             val updatesViewModel: UpdatesViewModel = viewModel()
             val updateState by updatesViewModel.state.collectAsStateWithLifecycle()
+            val nextUpdateCheckAt by updatesViewModel.nextCheckAt.collectAsStateWithLifecycle()
 
             val scope = rememberCoroutineScope()
+            var appearanceTransition by remember {
+                mutableStateOf(fadeInFromBlack)
+            }
             val blackout = remember {
                 Animatable(if (fadeInFromBlack) 1f else 0f)
             }
@@ -78,6 +84,7 @@ class MainActivity : AppCompatActivity() {
             LaunchedEffect(Unit) {
                 if (fadeInFromBlack) {
                     blackout.animateTo(0f, tween(FADE_IN_MS))
+                    appearanceTransition = false
                 }
             }
 
@@ -98,16 +105,19 @@ class MainActivity : AppCompatActivity() {
                 QRScannerTheme(themeMode = settings.themeMode) {
                     QrScannerApp(
                         themeMode = settings.themeMode,
+                        hideBottomNavigation = appearanceTransition,
                         onThemeModeChange = { mode ->
                             if (mode != settings.themeMode &&
                                 !blackout.isRunning &&
                                 blackout.value == 0f
                             ) {
                                 scope.launch {
+                                    appearanceTransition = true
                                     blackout.animateTo(1f, tween(FADE_OUT_MS))
                                     settingsViewModel.setThemeMode(mode)
                                     delay(BLACK_HOLD_MS.milliseconds)
                                     blackout.animateTo(0f, tween(FADE_OUT_MS))
+                                    appearanceTransition = false
                                 }
                             }
                         },
@@ -118,6 +128,7 @@ class MainActivity : AppCompatActivity() {
                                 blackout.value == 0f
                             ) {
                                 scope.launch {
+                                    appearanceTransition = true
                                     blackout.animateTo(1f, tween(FADE_OUT_MS))
                                     settingsViewModel.setLanguage(newLanguage)
                                     pendingLanguageChange = true
@@ -126,10 +137,12 @@ class MainActivity : AppCompatActivity() {
                                     )
                                     delay(FADE_IN_MS.toLong().milliseconds)
                                     blackout.animateTo(0f, tween(FADE_IN_MS))
+                                    appearanceTransition = false
                                 }
                             }
                         },
                         updateState = updateState,
+                        nextUpdateCheckAt = nextUpdateCheckAt,
                         onCheckUpdates = updatesViewModel::checkUpdates
                     )
                 }

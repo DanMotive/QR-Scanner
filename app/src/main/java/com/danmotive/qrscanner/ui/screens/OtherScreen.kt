@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
@@ -35,6 +36,8 @@ import com.danmotive.qrscanner.R
 import com.danmotive.qrscanner.data.AppLanguage
 import com.danmotive.qrscanner.data.ThemeMode
 import com.danmotive.qrscanner.ui.updates.UpdateState
+import java.text.DateFormat
+import java.util.Date
 
 private const val GITHUB_URL =
     "https://github.com/DanMotive/QR-Scanner"
@@ -49,6 +52,7 @@ fun OtherScreen(
     language: AppLanguage,
     onLanguageChange: (AppLanguage) -> Unit,
     updateState: UpdateState,
+    nextUpdateCheckAt: Long?,
     onCheckUpdates: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -61,17 +65,29 @@ fun OtherScreen(
     val checkingUpdatesText = stringResource(R.string.updates_checking)
     val noUpdatesText = stringResource(R.string.updates_no_updates)
     val updateErrorText = stringResource(R.string.updates_check_failed)
+    val rateLimitedText = if (nextUpdateCheckAt != null) {
+        val locale = LocalConfiguration.current.locales[0]
+        val availableAt = DateFormat.getDateTimeInstance(
+            DateFormat.SHORT,
+            DateFormat.SHORT,
+            locale
+        ).format(Date(nextUpdateCheckAt))
+        stringResource(R.string.updates_rate_limited, availableAt)
+    } else {
+        null
+    }
     val availableUpdateText = stringResource(
         R.string.updates_available_version,
         (updateState as? UpdateState.Available)?.version.orEmpty()
     )
 
-    val updatesValue = when (updateState) {
-        UpdateState.Idle -> null
-        UpdateState.Checking -> checkingUpdatesText
-        UpdateState.NoUpdates -> noUpdatesText
-        UpdateState.Error -> updateErrorText
-        is UpdateState.Available -> availableUpdateText
+    val updatesValue = when {
+        updateState is UpdateState.Checking -> checkingUpdatesText
+        updateState is UpdateState.Available -> availableUpdateText
+        nextUpdateCheckAt != null -> rateLimitedText
+        updateState == UpdateState.NoUpdates -> noUpdatesText
+        updateState == UpdateState.Error -> updateErrorText
+        else -> null
     }
 
     var showThemeDialog by remember { mutableStateOf(false) }
@@ -174,7 +190,8 @@ fun OtherScreen(
                 checkUpdatesTitle
             },
             value = updatesValue,
-            enabled = updateState != UpdateState.Checking,
+            enabled = updateState != UpdateState.Checking &&
+                    (updateState is UpdateState.Available || nextUpdateCheckAt == null),
             onClick = {
                 if (updateState is UpdateState.Available) {
                     openUrl("$GITHUB_URL/releases/latest")
