@@ -1,3 +1,7 @@
+@file:Suppress("UnstableApiUsage")
+
+// удалить, если чтото ломается.
+
 pluginManagement {
     repositories {
         google {
