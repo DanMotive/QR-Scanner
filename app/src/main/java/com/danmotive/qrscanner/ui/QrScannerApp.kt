@@ -3,7 +3,6 @@ package com.danmotive.qrscanner.ui
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -48,7 +47,6 @@ enum class AppTab(
 @Composable
 fun QrScannerApp(
     themeMode: ThemeMode,
-    hideBottomNavigation: Boolean,
     onThemeModeChange: (ThemeMode) -> Unit,
     language: AppLanguage,
     onLanguageChange: (AppLanguage) -> Unit,
@@ -75,35 +73,29 @@ fun QrScannerApp(
         },
         bottomBar = {
             NavigationBar {
-                if (hideBottomNavigation) {
-                    repeat(AppTab.entries.size) {
-                        Spacer(Modifier.weight(1f))
-                    }
-                } else {
-                    AppTab.entries.forEach { tab ->
-                        NavigationBarItem(
-                            selected = selectedTab == tab,
-                            onClick = { selectedTab = tab },
-                            icon = {
-                                val showUpdateBadge = tab == AppTab.Other && updateAvailable
-                                BadgedBox(
-                                    badge = { if (showUpdateBadge) Badge() }
-                                ) {
-                                    Icon(
-                                        imageVector = tab.icon,
-                                        contentDescription = if (showUpdateBadge) {
-                                            updateAvailableDescription
-                                        } else {
-                                            null
-                                        }
-                                    )
-                                }
-                            },
-                            label = {
-                                Text(text = stringResource(tab.labelRes))
+                AppTab.entries.forEach { tab ->
+                    NavigationBarItem(
+                        selected = selectedTab == tab,
+                        onClick = { selectedTab = tab },
+                        icon = {
+                            val showUpdateBadge = tab == AppTab.Other && updateAvailable
+                            BadgedBox(
+                                badge = { if (showUpdateBadge) Badge() }
+                            ) {
+                                Icon(
+                                    imageVector = tab.icon,
+                                    contentDescription = if (showUpdateBadge) {
+                                        updateAvailableDescription
+                                    } else {
+                                        null
+                                    }
+                                )
                             }
-                        )
-                    }
+                        },
+                        label = {
+                            Text(text = stringResource(tab.labelRes))
+                        }
+                    )
                 }
             }
         }
@@ -136,7 +128,6 @@ private fun QrScannerAppPreview() {
     QRScannerTheme {
         QrScannerApp(
             themeMode = ThemeMode.SYSTEM,
-            hideBottomNavigation = false,
             onThemeModeChange = {},
             language = AppLanguage.SYSTEM,
             onLanguageChange = {},

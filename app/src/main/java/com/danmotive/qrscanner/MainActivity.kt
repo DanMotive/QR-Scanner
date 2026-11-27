@@ -16,16 +16,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.os.LocaleListCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.danmotive.qrscanner.data.AppLanguage
@@ -57,6 +57,7 @@ class MainActivity : AppCompatActivity() {
         val fadeInFromBlack = savedInstanceState?.getBoolean(STATE_FADE_IN) == true
         if (fadeInFromBlack) {
             window.setBackgroundDrawable(0xFF000000.toInt().toDrawable())
+            setSystemNavigationBarVisible(false)
         }
 
         setContent {
@@ -74,9 +75,6 @@ class MainActivity : AppCompatActivity() {
             val nextUpdateCheckAt by updatesViewModel.nextCheckAt.collectAsStateWithLifecycle()
 
             val scope = rememberCoroutineScope()
-            var appearanceTransition by remember {
-                mutableStateOf(fadeInFromBlack)
-            }
             val blackout = remember {
                 Animatable(if (fadeInFromBlack) 1f else 0f)
             }
@@ -84,7 +82,7 @@ class MainActivity : AppCompatActivity() {
             LaunchedEffect(Unit) {
                 if (fadeInFromBlack) {
                     blackout.animateTo(0f, tween(FADE_IN_MS))
-                    appearanceTransition = false
+                    setSystemNavigationBarVisible(true)
                 }
             }
 
@@ -105,19 +103,21 @@ class MainActivity : AppCompatActivity() {
                 QRScannerTheme(themeMode = settings.themeMode) {
                     QrScannerApp(
                         themeMode = settings.themeMode,
-                        hideBottomNavigation = appearanceTransition,
                         onThemeModeChange = { mode ->
                             if (mode != settings.themeMode &&
                                 !blackout.isRunning &&
                                 blackout.value == 0f
                             ) {
+                                setSystemNavigationBarVisible(false)
                                 scope.launch {
-                                    appearanceTransition = true
-                                    blackout.animateTo(1f, tween(FADE_OUT_MS))
-                                    settingsViewModel.setThemeMode(mode)
-                                    delay(BLACK_HOLD_MS.milliseconds)
-                                    blackout.animateTo(0f, tween(FADE_OUT_MS))
-                                    appearanceTransition = false
+                                    try {
+                                        blackout.animateTo(1f, tween(FADE_OUT_MS))
+                                        settingsViewModel.setThemeMode(mode)
+                                        delay(BLACK_HOLD_MS.milliseconds)
+                                        blackout.animateTo(0f, tween(FADE_OUT_MS))
+                                    } finally {
+                                        setSystemNavigationBarVisible(true)
+                                    }
                                 }
                             }
                         },
@@ -127,17 +127,20 @@ class MainActivity : AppCompatActivity() {
                                 !blackout.isRunning &&
                                 blackout.value == 0f
                             ) {
+                                setSystemNavigationBarVisible(false)
                                 scope.launch {
-                                    appearanceTransition = true
-                                    blackout.animateTo(1f, tween(FADE_OUT_MS))
-                                    settingsViewModel.setLanguage(newLanguage)
-                                    pendingLanguageChange = true
-                                    AppCompatDelegate.setApplicationLocales(
-                                        LocaleListCompat.forLanguageTags(newLanguage.tag)
-                                    )
-                                    delay(FADE_IN_MS.toLong().milliseconds)
-                                    blackout.animateTo(0f, tween(FADE_IN_MS))
-                                    appearanceTransition = false
+                                    try {
+                                        blackout.animateTo(1f, tween(FADE_OUT_MS))
+                                        settingsViewModel.setLanguage(newLanguage)
+                                        pendingLanguageChange = true
+                                        AppCompatDelegate.setApplicationLocales(
+                                            LocaleListCompat.forLanguageTags(newLanguage.tag)
+                                        )
+                                        delay(FADE_IN_MS.toLong().milliseconds)
+                                        blackout.animateTo(0f, tween(FADE_IN_MS))
+                                    } finally {
+                                        setSystemNavigationBarVisible(true)
+                                    }
                                 }
                             }
                         },
@@ -153,6 +156,17 @@ class MainActivity : AppCompatActivity() {
                         .background(Color.Black.copy(alpha = blackout.value))
                 )
             }
+        }
+    }
+
+    private fun setSystemNavigationBarVisible(visible: Boolean) {
+        val controller = WindowCompat.getInsetsController(window, window.decorView)
+        if (visible) {
+            controller.show(WindowInsetsCompat.Type.navigationBars())
+        } else {
+            controller.systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller.hide(WindowInsetsCompat.Type.navigationBars())
         }
     }
 

@@ -7,6 +7,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -93,12 +94,17 @@ fun GeneratorScreen(modifier: Modifier = Modifier) {
                 ) {
                     generatableBarcodeFormats.forEach { format ->
                         DropdownMenuItem(
+                            modifier = Modifier.height(32.dp),
                             text = { Text(stringResource(format.labelResource())) },
                             trailingIcon = if (format == selectedFormat) {
                                 { Icon(Icons.Default.Check, contentDescription = null) }
                             } else {
                                 null
                             },
+                            contentPadding = PaddingValues(
+                                horizontal = 12.dp,
+                                vertical = 0.dp
+                            ),
                             onClick = {
                                 selectedFormat = format
                                 formatMenuExpanded = false
