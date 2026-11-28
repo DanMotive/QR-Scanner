@@ -19,15 +19,22 @@ import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
+import androidx.camera.core.UseCaseGroup
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
@@ -39,20 +46,30 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
@@ -71,6 +88,10 @@ import com.google.mlkit.vision.common.InputImage
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.math.abs
+import kotlin.math.min
+
+private const val RETICLE_WIDTH_FRACTION = 0.68f
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
@@ -90,6 +111,7 @@ fun ScanScreen(
     val qrNotFoundMessage = stringResource(R.string.qr_not_found)
     val scanErrorMessage = stringResource(R.string.scan_error)
     val imageOpenErrorMessage = stringResource(R.string.image_open_error)
+    val resetZoomLabel = stringResource(R.string.zoom_reset)
     val haptic = LocalHapticFeedback.current
 
     var hasPermission by rememberSaveable {
@@ -106,10 +128,21 @@ fun ScanScreen(
     var result by rememberSaveable { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var previewView by remember { mutableStateOf<PreviewView?>(null) }
+    var previewSize by remember { mutableStateOf(IntSize.Zero) }
     var camera by remember { mutableStateOf<Camera?>(null) }
     val hasFlash = remember(camera) { camera?.cameraInfo?.hasFlashUnit() == true }
     val scanned = remember { AtomicBoolean(result != null) }
     var torchOn by remember { mutableStateOf(false) }
+    var zoomRatio by remember { mutableFloatStateOf(1f) }
+
+    // Применяем зум в пределах, которые поддерживает камера.
+    fun applyZoom(target: Float) {
+        val control = camera?.cameraControl ?: return
+        val zoomState = camera?.cameraInfo?.zoomState?.value ?: return
+        val clamped = target.coerceIn(zoomState.minZoomRatio, zoomState.maxZoomRatio)
+        zoomRatio = clamped
+        control.setZoomRatio(clamped)
+    }
 
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -222,7 +255,11 @@ fun ScanScreen(
         }
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .onSizeChanged { previewSize = it }
+    ) {
 
         if (hasPermission) {
             AndroidView(
@@ -293,7 +330,60 @@ fun ScanScreen(
                                         .addOnSuccessListener(
                                             ContextCompat.getMainExecutor(context)
                                         ) { barcodes ->
-                                            val value = barcodes.firstOrNull()?.rawValue
+                                            // ML Kit отдаёт координаты в повёрнутом кадре,
+                                            // поэтому для 90/270 меняем местами стороны.
+                                            val rotation =
+                                                imageProxy.imageInfo.rotationDegrees
+                                            val uprightWidth: Int
+                                            val uprightHeight: Int
+                                            if (rotation == 90 || rotation == 270) {
+                                                uprightWidth = imageProxy.height
+                                                uprightHeight = imageProxy.width
+                                            } else {
+                                                uprightWidth = imageProxy.width
+                                                uprightHeight = imageProxy.height
+                                            }
+
+                                            // Видимая на экране часть кадра (FILL_CENTER).
+                                            val viewWidth = previewSize.width.toFloat()
+                                            val viewHeight = previewSize.height.toFloat()
+                                            val visibleWidth =
+                                                if (viewWidth > 0f && viewHeight > 0f) {
+                                                    min(
+                                                        uprightWidth.toFloat(),
+                                                        uprightHeight * viewWidth / viewHeight
+                                                    )
+                                                } else {
+                                                    uprightWidth.toFloat()
+                                                }
+
+                                            // Половина стороны прицела в пикселях кадра.
+                                            val halfSide =
+                                                visibleWidth * RETICLE_WIDTH_FRACTION / 2f
+                                            val centerX = uprightWidth / 2f
+                                            val centerY = uprightHeight / 2f
+
+                                            // Берём только коды, чей центр попал в прицел,
+                                            // и из них — самый близкий к центру.
+                                            val value = barcodes
+                                                .asSequence()
+                                                .filter { it.rawValue != null }
+                                                .mapNotNull { barcode ->
+                                                    val box = barcode.boundingBox
+                                                        ?: return@mapNotNull null
+                                                    val dx = box.centerX() - centerX
+                                                    val dy = box.centerY() - centerY
+                                                    if (abs(dx) <= halfSide &&
+                                                        abs(dy) <= halfSide
+                                                    ) {
+                                                        dx * dx + dy * dy to barcode
+                                                    } else {
+                                                        null
+                                                    }
+                                                }
+                                                .minByOrNull { it.first }
+                                                ?.second
+                                                ?.rawValue
                                             if (value != null && scanned.compareAndSet(
                                                     false,
                                                     true
@@ -314,12 +404,33 @@ fun ScanScreen(
 
                         try {
                             provider.unbindAll()
-                            camera = provider.bindToLifecycle(
-                                lifecycleOwner,
-                                CameraSelector.DEFAULT_BACK_CAMERA,
-                                preview,
-                                analysis
-                            )
+
+                            // ViewPort связывает кроп анализа с превью: зум влияет
+                            // и на распознавание, а не только на картинку.
+                            val viewPort = view.viewPort
+                            camera = if (viewPort != null) {
+                                val group = UseCaseGroup.Builder()
+                                    .addUseCase(preview)
+                                    .addUseCase(analysis)
+                                    .setViewPort(viewPort)
+                                    .build()
+                                provider.bindToLifecycle(
+                                    lifecycleOwner,
+                                    CameraSelector.DEFAULT_BACK_CAMERA,
+                                    group
+                                )
+                            } else {
+                                provider.bindToLifecycle(
+                                    lifecycleOwner,
+                                    CameraSelector.DEFAULT_BACK_CAMERA,
+                                    preview,
+                                    analysis
+                                )
+                            }
+
+                            camera?.cameraInfo?.zoomState?.value?.let {
+                                zoomRatio = it.zoomRatio
+                            }
                         } catch (e: Exception) {
                             error = e.message
                         }
@@ -330,6 +441,7 @@ fun ScanScreen(
                 onDispose {
                     camera = null
                     torchOn = false
+                    zoomRatio = 1f
                     cameraProvider?.unbindAll()
                     scanner.get()?.close()
                     executor.shutdown()
@@ -425,13 +537,38 @@ fun ScanScreen(
                     .padding(16.dp)
             )
         }
-// Подсказка в центре
+        // Жест «щипок» для зума поверх превью
         if (result == null && hasPermission) {
-            Text(
-                stringResource(R.string.point_camera_hint),
-                color = Color.White,
-                modifier = Modifier.align(Alignment.Center)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(camera) {
+                        detectTransformGestures { _, _, zoom, _ ->
+                            applyZoom(zoomRatio * zoom)
+                        }
+                    }
             )
+        }
+
+        // Прицел и подсказка в центре
+        if (result == null && hasPermission) {
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val reticleSize = maxWidth * RETICLE_WIDTH_FRACTION
+
+                ScanReticle(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .size(reticleSize)
+                )
+
+                Text(
+                    text = stringResource(R.string.point_camera_hint),
+                    color = Color.White,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .offset(y = reticleSize / 2 + 20.dp)
+                )
+            }
         }
 
         // Кнопка импорта фотографии
@@ -471,6 +608,80 @@ fun ScanScreen(
                     tint = if (torchOn) Color(0xFFFFC107) else Color.White
                 )
             }
+        }
+
+        // Индикатор зума: показывается, когда есть приближение.
+        // Тап по нему возвращает 1×.
+        if (hasPermission && result == null && zoomRatio > 1.01f) {
+            Surface(
+                shape = CircleShape,
+                color = Color.Black.copy(alpha = 0.45f),
+                contentColor = Color.White,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(16.dp)
+                    .semantics { contentDescription = resetZoomLabel }
+                    .clickable { applyZoom(1f) }
+            ) {
+                Text(
+                    text = "%.1f×".format(zoomRatio),
+                    modifier = Modifier.padding(
+                        horizontal = 12.dp,
+                        vertical = 6.dp
+                    )
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Рамка-прицел в центре экрана: четыре скруглённых уголка.
+ */
+@Composable
+private fun ScanReticle(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val stroke = 3.dp.toPx()
+        val shadowStroke = stroke * 2.2f
+        val arm = 32.dp.toPx()
+        val radius = 14.dp.toPx()
+        val inset = shadowStroke / 2f
+
+        val left = inset
+        val top = inset
+        val right = size.width - inset
+        val bottom = size.height - inset
+
+        fun cornerPath(x: Float, y: Float, dx: Float, dy: Float): Path =
+            Path().apply {
+                moveTo(x, y + dy * arm)
+                lineTo(x, y + dy * radius)
+                quadraticTo(x, y, x + dx * radius, y)
+                lineTo(x + dx * arm, y)
+            }
+
+        val paths = listOf(
+            cornerPath(left, top, 1f, 1f),
+            cornerPath(right, top, -1f, 1f),
+            cornerPath(left, bottom, 1f, -1f),
+            cornerPath(right, bottom, -1f, -1f)
+        )
+
+        // Тёмная подложка — чтобы рамка читалась на светлом фоне.
+        paths.forEach { path ->
+            drawPath(
+                path = path,
+                color = Color.Black.copy(alpha = 0.35f),
+                style = Stroke(width = shadowStroke, cap = StrokeCap.Round)
+            )
+        }
+
+        paths.forEach { path ->
+            drawPath(
+                path = path,
+                color = Color.White,
+                style = Stroke(width = stroke, cap = StrokeCap.Round)
+            )
         }
     }
 }
